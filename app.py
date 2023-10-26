@@ -39,15 +39,27 @@ def init_db():
         db.commit()
 
 
+def open_database(database_name):
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+    return conn, cursor
+
+
 # Generate salt
 def generate_salt():
     return os.urandom(16)
 
 
-# Hash password
-def hash_password(password, in_salt):
+# HASHING
+def hash_data(data):
     ph = PasswordHasher()
-    hashed = ph.hash(password, salt=in_salt)
+    hashed = ph.hash(data)
+    return hashlib.sha256(hashed.encode()).hexdigest()
+
+
+def hash_salted_data(data, in_salt):
+    ph = PasswordHasher()
+    hashed = ph.hash(data, salt=in_salt)
     return hashlib.sha256(hashed.encode()).hexdigest()
 
 
@@ -73,7 +85,7 @@ class Block:
     def __init__(self, data, prev_hash):
         self.data = data
         self.prev_hash = prev_hash
-        self.hash = hash_password(data + prev_hash, generate_salt())
+        self.hash = hash_salted_data(data + prev_hash, generate_salt())
 
 
 # Register user
@@ -86,7 +98,7 @@ def register():
     user_data = data['data']
 
     salt = generate_salt()
-    hashed_pass = hash_password(password, salt)
+    hashed_pass = hash_salted_data(password, salt)
     print(hashed_pass)
 
     encrypted_data = encrypt(user_data)
@@ -119,7 +131,7 @@ def login():
     # Unpack user data
     user_id, username, salt, hashed, encrypted_data = user
     # Validate password
-    hashed_input = hash_password(password, salt)
+    hashed_input = hash_salted_data(password, salt)
     print(hashed_input)
     if hashed_input != hashed:
         return jsonify({'msg': 'Invalid credentials'}), 401
@@ -141,43 +153,41 @@ def login():
 blockchains = []
 
 
-# CREATE BLOCKCHAIN
+# SYSTEM FUNCTIONS
 @app.route('/create_blockchain', methods=['POST'])
 def create_blockchain():
     data = request.get_json()
-    blockchain_name = data.get('name')
-    blockchain_type = data.get('type')
-    blockchain_password = data.get('password')
+    blockchain_name = data['blockchain_name']
+    blockchain_type = data['blockchain_type']
+    blockchain_password = data['blockchain_password']
 
     # Create the database if it doesn't exist
     init_db()
 
-    conn = sqlite3.connect('blockchain_database.db')
-    cursor = conn.cursor()
+    conn, cursor = open_database('blockchain_database.db')
 
-    # Insert blockchain metadata into the 'blockchains' table
-    cursor.execute('INSERT INTO blockchains (name, type, password) VALUES (?, ?, ?)',
-                   (blockchain_name, blockchain_type, blockchain_password))
+    try:
+        # Insert blockchain metadata into the 'blockchains' table
+        cursor.execute('INSERT INTO blockchains (name, type, password) VALUES (?, ?, ?)',
+                       (blockchain_name, blockchain_type, blockchain_password))
 
-    conn.commit()
-    conn.close()
+        # Create a new table for the blockchain to store its blocks
+        cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS {blockchain_name}
+            (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+             hash TEXT,
+             previous_hash TEXT,
+             data TEXT,
+             reference TEXT)
+        ''')
 
-    # Create a new table for the blockchain to store its blocks
-    conn = sqlite3.connect('blockchain_database.db')
-    cursor = conn.cursor()
-    cursor.execute(f'''
-        CREATE TABLE IF NOT EXISTS {blockchain_name}
-        (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-         hash TEXT,
-         previous_hash TEXT,
-         data TEXT,
-         reference TEXT)
-    ''')
+        conn.commit()
 
-    conn.commit()
-    conn.close()
-
-    return jsonify({'message': f'Blockchain "{blockchain_name}" created successfully'}), 201
+        return jsonify({'message': f'Blockchain "{blockchain_name}" created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to create blockchain: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 
 if __name__ == '__main__':
