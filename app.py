@@ -4,6 +4,7 @@ import hashlib
 import os
 from cryptography.fernet import Fernet
 from argon2 import PasswordHasher
+import base64
 
 app = Flask(__name__)
 
@@ -45,11 +46,6 @@ def open_database(database_name):
     return conn, cursor
 
 
-# Generate salt
-def generate_salt():
-    return os.urandom(16)
-
-
 # HASHING
 def hash_data(data):
     ph = PasswordHasher()
@@ -61,6 +57,17 @@ def hash_salted_data(data, in_salt):
     ph = PasswordHasher()
     hashed = ph.hash(data, salt=in_salt)
     return hashlib.sha256(hashed.encode()).hexdigest()
+
+
+# Generate salt
+def generate_salt():
+    return os.urandom(16)
+
+
+def generate_salt_as_string():
+    salt = os.urandom(16)
+    salt_string = base64.b64encode(salt).decode('utf-8')
+    return salt_string
 
 
 # Encrypt/decrypt data
@@ -76,10 +83,6 @@ def decrypt(data):
     return f.decrypt(data).decode()
 
 
-# Blockchain 
-blockchain = []
-
-
 class Block:
 
     def __init__(self, data, prev_hash):
@@ -88,69 +91,44 @@ class Block:
         self.hash = hash_salted_data(data + prev_hash, generate_salt())
 
 
-# Register user
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
+def create_genesis_block(blockchain_name):
+    conn, cursor = open_database('blockchain_database.db')
+    genesis_hash = hash_data("Genesis Block" + generate_salt_as_string())
 
-    username = data['username']
-    password = data['password']
-    user_data = data['data']
+    try:
+        cursor.execute(f'''
+            INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
+            VALUES (?, ?, ?, ?)
+        ''', (genesis_hash, "0", "The heavens and the Earth.", "Genesis"))
 
-    salt = generate_salt()
-    hashed_pass = hash_salted_data(password, salt)
-    print(hashed_pass)
-
-    encrypted_data = encrypt(user_data)
-
-    db = get_db()
-    db.execute('''INSERT INTO users
-                 (username, salt, hash, data) 
-                 VALUES (?,?,?,?)''',
-               (username, salt, hashed_pass, encrypted_data))
-    db.commit()
-
-    last_block = blockchain[-1] if blockchain else None
-    block = Block(hashed_pass, last_block.hash if last_block else '')
-    blockchain.append(block)
-
-    return jsonify({'msg': 'Registered successfully'}), 200
+        conn.commit()
+        return jsonify({'message': f'Genesis block created for "{blockchain_name}"'}), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to create genesis block: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 
-# Login
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data['username']
-    password = data['password']
+def get_latest_hash_by_max_id(blockchain_name):
+    conn, cursor = open_database('blockchain_database.db')
 
-    # Get user from database
-    db = get_db()
-    user = db.execute('SELECT * FROM users WHERE username=?', [username]).fetchone()
+    try:
+        cursor.execute(f'''
+            SELECT hash
+            FROM {blockchain_name}
+            WHERE id = (SELECT MAX(id) FROM {blockchain_name})
+        ''')
+        latest_block = cursor.fetchone()
 
-    # Unpack user data
-    user_id, username, salt, hashed, encrypted_data = user
-    # Validate password
-    hashed_input = hash_salted_data(password, salt)
-    print(hashed_input)
-    if hashed_input != hashed:
-        return jsonify({'msg': 'Invalid credentials'}), 401
-
-    # Verify blockchain 
-    stored_hash = None
-    for block in blockchain:
-        if block.data == hashed:
-            stored_hash = hashed
-            break
-
-    if not stored_hash:
-        return jsonify({'msg': 'Blockchain verification failed'}), 401
-
-    # Login successful
-    return jsonify({'msg': 'Logged in successfully'}), 200
-
-
-blockchains = []
+        if latest_block:
+            latest_hash = latest_block[0]
+            return latest_hash
+        else:
+            return "Genesis Block"
+    except Exception as e:
+        return f'Error: {str(e)}'
+    finally:
+        conn.close()
 
 
 # SYSTEM FUNCTIONS
@@ -183,9 +161,69 @@ def create_blockchain():
 
         conn.commit()
 
+        create_genesis_block(blockchain_name)
+
         return jsonify({'message': f'Blockchain "{blockchain_name}" created successfully'}), 201
     except Exception as e:
         return jsonify({'error': f'Failed to create blockchain: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+# Function to store hashed data in the blockchain
+@app.route('/store_in_blockchain_hashed', methods=['POST'])
+def store_in_blockchain_hashed():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    data_to_store = data['data']
+    reference = data['reference']
+
+    # Get the latest hash from the blockchain
+    latest_hash = get_latest_hash_by_max_id(blockchain_name)
+
+    # Hash the data
+    hashed_data = hash_data(data_to_store + latest_hash)
+
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
+            VALUES (?, ?, ?, ?)
+        ''', (hashed_data, latest_hash, data_to_store, reference))
+
+        conn.commit()
+        return jsonify({'message': f'Data stored in "{blockchain_name}" with hash: {hashed_data}'}), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+# Function to store data in the blockchain without hashing
+@app.route('/store_in_blockchain', methods=['POST'])
+def store_in_blockchain():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    data_to_store = data['data']
+    reference = data['reference']
+
+    # Get the latest hash from the blockchain
+    latest_hash = get_latest_hash_by_max_id(blockchain_name)
+    block_hash = hash_data(data_to_store + latest_hash)
+
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
+            VALUES (?, ?, ?, ?)
+        ''', (block_hash, latest_hash, data_to_store, reference))
+
+        conn.commit()
+        return jsonify({'message': f'Data stored in "{blockchain_name}"'}), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
     finally:
         conn.close()
 
