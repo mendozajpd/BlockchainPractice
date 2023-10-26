@@ -99,7 +99,7 @@ def create_genesis_block(blockchain_name):
         cursor.execute(f'''
             INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
             VALUES (?, ?, ?, ?)
-        ''', (genesis_hash, "0", "The heavens and the Earth.", "Genesis"))
+        ''', (genesis_hash, "0", "The Heavens and the Earth.", "Genesis"))
 
         conn.commit()
         return jsonify({'message': f'Genesis block created for "{blockchain_name}"'}), 201
@@ -127,6 +127,48 @@ def get_latest_hash_by_max_id(blockchain_name):
             return "Genesis Block"
     except Exception as e:
         return f'Error: {str(e)}'
+    finally:
+        conn.close()
+
+
+# SEARCH THE BLOCKCHAIN
+def search_blockchain(blockchain_name, criteria, value):
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            SELECT data
+            FROM {blockchain_name}
+            WHERE {criteria} = ?
+        ''', (value,))
+        result = cursor.fetchall()
+
+        if result:
+            return [data[0] for data in result]
+        else:
+            return None
+    except Exception as e:
+        return f'Error: {str(e)}'
+    finally:
+        conn.close()
+
+
+# IF DATA EXISTS IN BLOCKCHAIN
+def is_data_equal_in_blockchain(blockchain_name, criteria, value):
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        query = f'''
+            SELECT COUNT(*)
+            FROM {blockchain_name}
+            WHERE {criteria} = ?
+        '''
+        cursor.execute(query, (value,))
+        count = cursor.fetchone()[0]
+
+        return count > 0
+    except Exception as e:
+        return False
     finally:
         conn.close()
 
