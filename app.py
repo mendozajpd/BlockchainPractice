@@ -91,6 +91,33 @@ class Block:
         self.hash = hash_salted_data(data + prev_hash, generate_salt())
 
 
+def verify_blockchain_integrity(blockchain_name):
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            SELECT id, hash, previous_hash, data
+            FROM {blockchain_name}
+            WHERE id != 1
+            ORDER BY id
+        ''')
+        blocks = cursor.fetchall()
+
+        # previous_hash =
+
+        for block in blocks:
+            block_id, hash, prev_hash, data = block
+            if hash != hash_data(data+previous_hash):
+                return jsonify({'error': f'Blockchain tampering detected at block ID {block_id}'})
+            previous_hash = hash
+
+        return jsonify({'message': 'Blockchain integrity verified'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to verify blockchain integrity: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
 def create_genesis_block(blockchain_name):
     conn, cursor = open_database('blockchain_database.db')
     genesis_hash = hash_data("Genesis Block" + generate_salt_as_string())
@@ -226,13 +253,15 @@ def store_in_blockchain_hashed():
     # Hash the data
     hashed_data = hash_data(data_to_store + latest_hash)
 
+    hashed = hash_data(data_to_store + latest_hash)
+
     conn, cursor = open_database('blockchain_database.db')
 
     try:
         cursor.execute(f'''
             INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
             VALUES (?, ?, ?, ?)
-        ''', (hashed_data, latest_hash, data_to_store, reference))
+        ''', (hashed, latest_hash, hashed_data, reference))
 
         conn.commit()
         return jsonify({'message': f'Data stored in "{blockchain_name}" with hash: {hashed_data}'}), 201
@@ -266,6 +295,38 @@ def store_in_blockchain():
         return jsonify({'message': f'Data stored in "{blockchain_name}"'}), 201
     except Exception as e:
         return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/verify_blockchain', methods=['GET'])
+def verify_blockchain():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    return verify_blockchain_integrity(blockchain_name)
+
+
+# TESTING PURPOSES
+@app.route('/modify_block_data', methods=['POST'])
+def modify_block_data():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    block_id = data['block_id']
+    new_data = data['new_data']
+
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            UPDATE {blockchain_name}
+            SET data = ?
+            WHERE id = ?
+        ''', (new_data, block_id))
+        conn.commit()
+
+        return jsonify({'message': f'Data in block ID {block_id} modified successfully'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to modify block data: {str(e)}'}), 500
     finally:
         conn.close()
 
