@@ -1,10 +1,7 @@
 import sqlite3
 from flask import Flask, g, request, jsonify
 import hashlib
-import os
-from cryptography.fernet import Fernet
 from argon2 import PasswordHasher
-import base64
 
 app = Flask(__name__)
 
@@ -40,88 +37,21 @@ def init_db():
         db.commit()
 
 
-def open_database(database_name):
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-    return conn, cursor
-
-
-# HASHING
+# Hashing
 def hash_data(data):
     ph = PasswordHasher()
     hashed = ph.hash(data)
     return hashlib.sha256(data.encode()).hexdigest()
 
 
-def hash_salted_data(data, in_salt):
-    ph = PasswordHasher()
-    hashed = ph.hash(data, salt=in_salt)
-    return hashlib.sha256(hashed.encode()).hexdigest()
-
-
-def get_block_hash_by_id(conn, cursor, blockchain_name, block_id):
-    try:
-        cursor.execute(f'''
-            SELECT hash
-            FROM {blockchain_name}
-            WHERE id = ?
-        ''', (block_id,))
-        result = cursor.fetchone()
-
-        if result:
-            block_hash = result[0]
-            return block_hash
-        else:
-            return jsonify({'error': f'Block with ID {block_id} not found'}), 404
-    except Exception as e:
-        return jsonify({'error': f'Failed to get block hash: {str(e)}'}), 500
-
-
-# Generate salt
-def generate_salt():
-    return os.urandom(16)
-
-
-def generate_salt_as_string():
-    salt = os.urandom(16)
-    salt_string = base64.b64encode(salt).decode('utf-8')
-    return salt_string
-
-
-# Encrypt/decrypt data
-key = Fernet.generate_key()
-f = Fernet(key)
-
-
-def encrypt(data):
-    return f.encrypt(data.encode())
-
-
-def decrypt(data):
-    return f.decrypt(data).decode()
-
-
-class Block:
-
-    def __init__(self, data, prev_hash):
-        self.data = data
-        self.prev_hash = prev_hash
-        self.hash = hash_salted_data(data + prev_hash, generate_salt())
-
-
-import sqlite3
-import hashlib
-
+# Open database connection
 def open_database(database_name):
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
     return conn, cursor
 
-def hash_data(data):
-    # You can use your hash function here, I'll use a simple hashlib example
-    return hashlib.sha256(data.encode()).hexdigest()
 
-
+# Blockchain Integrity Verification
 def verify_blockchain_integrity(blockchain_name):
     conn, cursor = open_database('blockchain_database.db')
 
@@ -134,7 +64,7 @@ def verify_blockchain_integrity(blockchain_name):
         ''')
         blocks = cursor.fetchall()
 
-        previous_hash = ""  # Initialize with an empty string
+        previous_hash = ""
 
         for block in blocks:
             block_id, hash, prev_hash, data = block
@@ -149,9 +79,10 @@ def verify_blockchain_integrity(blockchain_name):
         conn.close()
 
 
+# Create Genesis Block
 def create_genesis_block(blockchain_name):
     conn, cursor = open_database('blockchain_database.db')
-    genesis_hash = hash_data("Genesis Block" + generate_salt_as_string())
+    genesis_hash = hash_data("Genesis Block")
 
     try:
         cursor.execute(f'''
@@ -167,7 +98,7 @@ def create_genesis_block(blockchain_name):
         conn.close()
 
 
-# Helper function to add a block
+# Add Block to Blockchain
 def add_block(blockchain_name, hash_value, previous_hash, data, reference):
     conn, cursor = open_database('blockchain_database.db')
 
@@ -186,6 +117,7 @@ def add_block(blockchain_name, hash_value, previous_hash, data, reference):
         conn.close()
 
 
+# Get Latest Hash from Blockchain
 def get_latest_hash_by_max_id(blockchain_name):
     conn, cursor = open_database('blockchain_database.db')
 
@@ -208,7 +140,7 @@ def get_latest_hash_by_max_id(blockchain_name):
         conn.close()
 
 
-# DELETE THE BLOCKCHAIN
+# Delete Blockchain
 def delete_blockchain(blockchain_name):
     conn, cursor = open_database('blockchain_database.db')
 
@@ -226,19 +158,16 @@ def delete_blockchain(blockchain_name):
     finally:
         conn.close()
 
-
 # SEARCH THE BLOCKCHAIN
 def search_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database('blockchain_database.db')
-
     try:
         cursor.execute(f'''
             SELECT data
             FROM {blockchain_name}
-            WHERE {criteria} = ?
+            WHERE {criteria} = ? AND reference IS NOT NULL
         ''', (value,))
         result = cursor.fetchall()
-
         if result:
             return [data[0] for data in result]
         else:
@@ -248,11 +177,9 @@ def search_blockchain(blockchain_name, criteria, value):
     finally:
         conn.close()
 
-
 # IF DATA EXISTS IN BLOCKCHAIN
 def is_data_equal_in_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database('blockchain_database.db')
-
     try:
         query = f'''
             SELECT COUNT(*)
@@ -261,7 +188,6 @@ def is_data_equal_in_blockchain(blockchain_name, criteria, value):
         '''
         cursor.execute(query, (value,))
         count = cursor.fetchone()[0]
-
         return count > 0
     except Exception as e:
         return False
@@ -269,7 +195,7 @@ def is_data_equal_in_blockchain(blockchain_name, criteria, value):
         conn.close()
 
 
-# SYSTEM FUNCTIONS
+# Create Blockchain
 @app.route('/create_blockchain', methods=['POST'])
 def create_blockchain():
     data = request.get_json()
@@ -283,6 +209,11 @@ def create_blockchain():
     conn, cursor = open_database('blockchain_database.db')
 
     try:
+        # Check if the blockchain name already exists
+        cursor.execute('SELECT COUNT(*) FROM blockchains WHERE name = ?', (blockchain_name,))
+        if cursor.fetchone()[0] > 0:
+            return jsonify({'error': f'Blockchain "{blockchain_name}" already exists'}), 400
+
         # Insert blockchain metadata into the 'blockchains' table
         cursor.execute('INSERT INTO blockchains (name, type, password) VALUES (?, ?, ?)',
                        (blockchain_name, blockchain_type, blockchain_password))
@@ -308,7 +239,7 @@ def create_blockchain():
         conn.close()
 
 
-# Delete a blockchain endpoint
+# Delete Blockchain Endpoint
 @app.route('/delete_blockchain', methods=['DELETE'])
 def delete_blockchain_endpoint():
     data = request.get_json()
@@ -320,7 +251,7 @@ def delete_blockchain_endpoint():
     return delete_blockchain(blockchain_name)
 
 
-# Function to store hashed data in the blockchain
+# Store Hashed Data in Blockchain
 @app.route('/store_in_blockchain_hashed', methods=['POST'])
 def store_in_blockchain_hashed():
     data = request.get_json()
@@ -336,7 +267,6 @@ def store_in_blockchain_hashed():
 
     # Hash the data
     hashed_data = hash_data(data_to_store + latest_hash)
-
     hashed = hash_data(hashed_data + latest_hash)
 
     conn, cursor = open_database('blockchain_database.db')
@@ -355,7 +285,7 @@ def store_in_blockchain_hashed():
         conn.close()
 
 
-# Function to store data in the blockchain without hashing
+# Store Data in Blockchain
 @app.route('/store_in_blockchain', methods=['POST'])
 def store_in_blockchain():
     data = request.get_json()
@@ -386,7 +316,7 @@ def store_in_blockchain():
         conn.close()
 
 
-# Function to delete a reference by ID
+# Delete Reference by ID
 @app.route('/delete_reference_by_id', methods=['DELETE'])
 def delete_reference_by_id():
     data = request.get_json()
@@ -399,16 +329,16 @@ def delete_reference_by_id():
     conn, cursor = open_database('blockchain_database.db')
 
     try:
-        # Check if the block with the specified ID exists
+        # Check if the block with the specified ID exists and has a non-null reference
         cursor.execute(f'''
             SELECT id
             FROM {blockchain_name}
-            WHERE id = ?
+            WHERE id = ? AND reference IS NOT NULL
         ''', (block_id,))
         block = cursor.fetchone()
 
         if not block:
-            return jsonify({'error': f'Block with ID {block_id} not found'}), 404
+            return jsonify({'error': f'Block with ID {block_id} not found or has a null reference'}), 404
 
         # Delete the reference
         cursor.execute(f'''
@@ -425,7 +355,7 @@ def delete_reference_by_id():
         conn.close()
 
 
-# Function to update a block by ID
+# Update Block by ID
 @app.route('/update_block_by_id', methods=['PUT'])
 def update_block_by_id():
     data = request.get_json()
@@ -439,16 +369,16 @@ def update_block_by_id():
     conn, cursor = open_database('blockchain_database.db')
 
     try:
-        # Check if the block with the specified ID exists
+        # Check if the block with the specified ID exists and has a non-null reference
         cursor.execute(f'''
             SELECT id, hash, previous_hash, data, reference
             FROM {blockchain_name}
-            WHERE id = ?
+            WHERE id = ? AND reference IS NOT NULL
         ''', (block_id,))
         block = cursor.fetchone()
 
         if not block:
-            return jsonify({'error': f'Block with ID {block_id} not found'}), 404
+            return jsonify({'error': f'Block with ID {block_id} not found or has a null reference'}), 404
 
         block_id, hash_value, previous_hash, old_data, old_reference = block
 
@@ -472,36 +402,31 @@ def update_block_by_id():
         conn.close()
 
 
+# Search in Blockchain
+@app.route('/search_in_blockchain', methods=['GET'])
+def search_blockchain_endpoint():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    criteria = data['criteria']
+    value = data['value']
+
+    if not blockchain_name or not criteria or not value:
+        return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
+
+    result = search_blockchain(blockchain_name, criteria, value)
+
+    if result is not None:
+        return jsonify({'result': result}), 200
+    else:
+        return jsonify({'message': 'No matching data found in the blockchain'}), 404
+
+
+# Verify Blockchain Integrity Endpoint
 @app.route('/verify_blockchain', methods=['GET'])
 def verify_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
     return verify_blockchain_integrity(blockchain_name)
-
-
-# TESTING PURPOSES
-@app.route('/modify_block_data', methods=['POST'])
-def modify_block_data():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    block_id = data['block_id']
-    new_data = data['new_data']
-
-    conn, cursor = open_database('blockchain_database.db')
-
-    try:
-        cursor.execute(f'''
-            UPDATE {blockchain_name}
-            SET data = ?
-            WHERE id = ?
-        ''', (new_data, block_id))
-        conn.commit()
-
-        return jsonify({'message': f'Data in block ID {block_id} modified successfully'})
-    except Exception as e:
-        return jsonify({'error': f'Failed to modify block data: {str(e)}'}), 500
-    finally:
-        conn.close()
 
 
 if __name__ == '__main__':
