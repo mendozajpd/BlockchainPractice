@@ -4,10 +4,12 @@ from argon2 import PasswordHasher, exceptions #hashing
 import os
 
 
-blockchain = []
+# blockchain = []
 
 
-testblock = Block("First hash",['Username: Nico','Password'])
-print(testblock.block_hash)
+# testblock = Block("First hash",['Username: Nico','Password'])
+# print(testblock.block_hash)
 
+
+print("hello world")
 
