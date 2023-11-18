@@ -488,6 +488,13 @@ def verify_blockchain():
     blockchain_name = data['blockchain_name']
     return verify_blockchain_integrity(blockchain_name)
 
+dummy_api_keys = ["doesntmatter"]
+
+@app.before_request
+def before_request():
+    api_key = request.headers.get('apikey')
+    if not api_key or not in dummy_api_keys:
+        return jsonify({'error': 'Unauthorized'}), 401
 
 if __name__ == '__main__':
     init_db()
