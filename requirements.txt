@@ -1,8 +1,8 @@
 pathlib
-flask 
-google-auth 
-google-auth-oauthlib 
-google-auth-httplib2 
+flask
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
 google-api-python-client
 click
 cloudevents

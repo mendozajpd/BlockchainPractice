@@ -450,6 +450,8 @@ def update_block_by_criteria(blockchain_name, criteria, value, new_data):
     def verify_blockchain_cli(blockchain_name):
         result = verify_blockchain_integrity(blockchain_name)
         click.echo(result)
+        print(result)
+        input("Press Enter to Continue..")
 
     # Click group
     @click.group()
@@ -469,3 +471,4 @@ def update_block_by_criteria(blockchain_name, criteria, value, new_data):
 
     if __name__ == '__main__':
         cli()
+
