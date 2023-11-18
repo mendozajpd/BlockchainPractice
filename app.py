@@ -99,8 +99,9 @@ def create_genesis_block(blockchain_name):
 
 
 # Add Block to Blockchain
-def add_block(blockchain_name, hash_value, previous_hash, data, reference):
+def add_block(blockchain_name, hash_value, data, reference):
     conn, cursor = open_database('blockchain_database.db')
+    previous_hash = get_latest_hash_by_max_id(blockchain_name)
 
     try:
         cursor.execute(f'''
@@ -380,7 +381,10 @@ def update_block_by_id():
         if not block:
             return jsonify({'error': f'Block with ID {block_id} not found or has a null reference'}), 404
 
-        block_id, hash_value, previous_hash, old_data, old_reference = block
+        block_id, hash_value, _, old_data, old_reference = block
+
+        # Get the latest hash from the blockchain
+        latest_hash = get_latest_hash_by_max_id(blockchain_name)
 
         # Delete the old reference
         cursor.execute(f'''
@@ -391,9 +395,65 @@ def update_block_by_id():
         conn.commit()
 
         # Add a new block with the updated data
-        new_block_hash = hash_data(new_data + previous_hash)
-        if add_block(blockchain_name, new_block_hash, hash_value, new_data, old_reference):
+        new_block_hash = hash_data(new_data + latest_hash)
+        if add_block(blockchain_name, new_block_hash, new_data, old_reference):
             return jsonify({'message': f'Block ID {block_id} updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to update block'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Failed to update block: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+# Update Block by Criteria
+@app.route('/update_block_by_criteria', methods=['PUT'])
+def update_block_by_criteria():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+    criteria = data['criteria']
+    value = data['value']
+    new_data = data['new_data']
+
+    if not blockchain_name or not criteria or not value or not new_data:
+        return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
+
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        # Check if there are blocks with the specified criteria
+        cursor.execute(f'''
+            SELECT id, hash, previous_hash, data, reference
+            FROM {blockchain_name}
+            WHERE {criteria} = ? AND reference IS NOT NULL
+            ORDER BY id DESC
+        ''', (value,))
+        blocks = cursor.fetchall()
+
+        if not blocks:
+            return jsonify({'error': f'No blocks found with {criteria} equal to {value}'}), 404
+
+        # Update the block with the highest ID
+        latest_block = blocks[0]
+        block_id, hash_value, _, old_data, old_reference = latest_block
+
+        # Get the latest hash from the blockchain
+        latest_hash = get_latest_hash_by_max_id(blockchain_name)
+
+        # Delete the old reference
+        cursor.execute(f'''
+            UPDATE {blockchain_name}
+            SET reference = NULL
+            WHERE id = ?
+        ''', (block_id,))
+        conn.commit()
+
+        # Add a new block with the updated data
+        new_block_hash = hash_data(new_data + latest_hash)
+        if add_block(blockchain_name, new_block_hash, new_data, old_reference):
+            return jsonify({
+                'message': f'Block with {criteria}={value} updated successfully. Updated block ID: {block_id}'
+            }), 200
         else:
             return jsonify({'error': 'Failed to update block'}), 500
     except Exception as e:
