@@ -1,6 +1,7 @@
 import sqlite3
-from flask import Flask, g, request, jsonify
 import hashlib
+from flask import Flask, g, request, jsonify
+import click
 
 app = Flask(__name__)
 
@@ -156,6 +157,7 @@ def delete_blockchain(blockchain_name):
     finally:
         conn.close()
 
+
 # SEARCH THE BLOCKCHAIN
 def search_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database('blockchain_database.db')
@@ -174,6 +176,7 @@ def search_blockchain(blockchain_name, criteria, value):
         return f'Error: {str(e)}'
     finally:
         conn.close()
+
 
 # IF DATA EXISTS IN BLOCKCHAIN
 def is_data_equal_in_blockchain(blockchain_name, criteria, value):
@@ -194,13 +197,11 @@ def is_data_equal_in_blockchain(blockchain_name, criteria, value):
 
 
 # Create Blockchain
-@app.route('/create_blockchain', methods=['POST'])
-def create_blockchain():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    blockchain_type = data['blockchain_type']
-    blockchain_password = data['blockchain_password']
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('blockchain_type')
+@click.argument('blockchain_password')
+def create_blockchain(blockchain_name, blockchain_type, blockchain_password):
     # Create the database if it doesn't exist
     init_db()
 
@@ -210,7 +211,8 @@ def create_blockchain():
         # Check if the blockchain name already exists
         cursor.execute('SELECT COUNT(*) FROM blockchains WHERE name = ?', (blockchain_name,))
         if cursor.fetchone()[0] > 0:
-            return jsonify({'error': f'Blockchain "{blockchain_name}" already exists'}), 400
+            click.echo(f'Blockchain "{blockchain_name}" already exists')
+            return
 
         # Insert blockchain metadata into the 'blockchains' table
         cursor.execute('INSERT INTO blockchains (name, type, password) VALUES (?, ?, ?)',
@@ -230,41 +232,32 @@ def create_blockchain():
 
         create_genesis_block(blockchain_name)
 
-        return jsonify({'message': f'Blockchain "{blockchain_name}" created successfully'}), 201
+        click.echo(f'Blockchain "{blockchain_name}" created successfully')
     except Exception as e:
-        return jsonify({'error': f'Failed to create blockchain: {str(e)}'}), 500
+        click.echo(f'Failed to create blockchain: {str(e)}')
     finally:
         conn.close()
 
 
-# Delete Blockchain Endpoint
-@app.route('/delete_blockchain', methods=['DELETE'])
-def delete_blockchain_endpoint():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-
-    if not blockchain_name:
-        return jsonify({'error': 'Blockchain name is required'}), 400
-
-    return delete_blockchain(blockchain_name)
+# Delete Blockchain
+@click.command()
+@click.argument('blockchain_name')
+def delete_blockchain_cli(blockchain_name):
+    result = delete_blockchain(blockchain_name)
+    click.echo(result)
 
 
 # Store Hashed Data in Blockchain
-@app.route('/store_in_blockchain_hashed', methods=['POST'])
-def store_in_blockchain_hashed():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    data_to_store = data['data']
-    reference = data['reference']
-
-    if not reference:
-        return jsonify({'error': 'Reference field is required'}), 400
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('data')
+@click.argument('reference')
+def store_in_blockchain_hashed(blockchain_name, data, reference):
     # Get the latest hash from the blockchain
     latest_hash = get_latest_hash_by_max_id(blockchain_name)
 
     # Hash the data
-    hashed_data = hash_data(data_to_store + latest_hash)
+    hashed_data = hash_data(data + latest_hash)
     hashed = hash_data(hashed_data + latest_hash)
 
     conn, cursor = open_database('blockchain_database.db')
@@ -276,27 +269,22 @@ def store_in_blockchain_hashed():
         ''', (hashed, latest_hash, hashed_data, reference))
 
         conn.commit()
-        return jsonify({'message': f'Data stored in "{blockchain_name}" with hash: {hashed_data}'}), 201
+        click.echo(f'Data stored in "{blockchain_name}" with hash: {hashed_data}')
     except Exception as e:
-        return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
+        click.echo(f'Failed to store data: {str(e)}')
     finally:
         conn.close()
 
 
 # Store Data in Blockchain
-@app.route('/store_in_blockchain', methods=['POST'])
-def store_in_blockchain():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    data_to_store = data['data']
-    reference = data['reference']
-
-    if not reference:
-        return jsonify({'error': 'Reference field is required'}), 400
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('data')
+@click.argument('reference')
+def store_in_blockchain(blockchain_name, data, reference):
     # Get the latest hash from the blockchain
     latest_hash = get_latest_hash_by_max_id(blockchain_name)
-    block_hash = hash_data(data_to_store + latest_hash)
+    block_hash = hash_data(data + latest_hash)
 
     conn, cursor = open_database('blockchain_database.db')
 
@@ -304,26 +292,21 @@ def store_in_blockchain():
         cursor.execute(f'''
             INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
             VALUES (?, ?, ?, ?)
-        ''', (block_hash, latest_hash, data_to_store, reference))
+        ''', (block_hash, latest_hash, data, reference))
 
         conn.commit()
-        return jsonify({'message': f'Data stored in "{blockchain_name}"'}), 201
+        click.echo(f'Data stored in "{blockchain_name}"')
     except Exception as e:
-        return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
+        click.echo(f'Failed to store data: {str(e)}')
     finally:
         conn.close()
 
 
 # Delete Reference by ID
-@app.route('/delete_reference_by_id', methods=['DELETE'])
-def delete_reference_by_id():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    block_id = data['block_id']
-
-    if not blockchain_name or not block_id:
-        return jsonify({'error': 'Blockchain name and block ID are required'}), 400
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('block_id')
+def delete_reference_by_id(blockchain_name, block_id):
     conn, cursor = open_database('blockchain_database.db')
 
     try:
@@ -336,7 +319,8 @@ def delete_reference_by_id():
         block = cursor.fetchone()
 
         if not block:
-            return jsonify({'error': f'Block with ID {block_id} not found or has a null reference'}), 404
+            click.echo(f'Block with ID {block_id} not found or has a null reference')
+            return
 
         # Delete the reference
         cursor.execute(f'''
@@ -346,24 +330,19 @@ def delete_reference_by_id():
         ''', (block_id,))
         conn.commit()
 
-        return jsonify({'message': f'Reference deleted for block ID {block_id}'}), 200
+        click.echo(f'Reference deleted for block ID {block_id}')
     except Exception as e:
-        return jsonify({'error': f'Failed to delete reference: {str(e)}'}), 500
+        click.echo(f'Failed to delete reference: {str(e)}')
     finally:
         conn.close()
 
 
 # Update Block by ID
-@app.route('/update_block_by_id', methods=['PUT'])
-def update_block_by_id():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    block_id = data['block_id']
-    new_data = data['new_data']
-
-    if not blockchain_name or not block_id or not new_data:
-        return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('block_id')
+@click.argument('new_data')
+def update_block_by_id(blockchain_name, block_id, new_data):
     conn, cursor = open_database('blockchain_database.db')
 
     try:
@@ -376,7 +355,8 @@ def update_block_by_id():
         block = cursor.fetchone()
 
         if not block:
-            return jsonify({'error': f'Block with ID {block_id} not found or has a null reference'}), 404
+            click.echo(f'Block with ID {block_id} not found or has a null reference')
+            return
 
         block_id, hash_value, _, old_data, old_reference = block
 
@@ -394,41 +374,36 @@ def update_block_by_id():
         # Add a new block with the updated data
         new_block_hash = hash_data(new_data + latest_hash)
         if add_block(blockchain_name, new_block_hash, new_data, old_reference):
-            return jsonify({'message': f'Block ID {block_id} updated successfully'}), 200
+            click.echo(f'Block ID {block_id} updated successfully')
         else:
-            return jsonify({'error': 'Failed to update block'}), 500
+            click.echo('Failed to update block')
     except Exception as e:
-        return jsonify({'error': f'Failed to update block: {str(e)}'}), 500
+        click.echo(f'Failed to update block: {str(e)}')
     finally:
         conn.close()
 
-
 # Update Block by Criteria
-@app.route('/update_block_by_criteria', methods=['PUT'])
-def update_block_by_criteria():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    criteria = data['criteria']
-    value = data['value']
-    new_data = data['new_data']
-
-    if not blockchain_name or not criteria or not value or not new_data:
-        return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
-
+@click.command()
+@click.argument('blockchain_name')
+@click.argument('criteria')
+@click.argument('value')
+@click.argument('new_data')
+def update_block_by_criteria(blockchain_name, criteria, value, new_data):
     conn, cursor = open_database('blockchain_database.db')
 
     try:
         # Check if there are blocks with the specified criteria
         cursor.execute(f'''
-            SELECT id, hash, previous_hash, data, reference
-            FROM {blockchain_name}
-            WHERE {criteria} = ? AND reference IS NOT NULL
-            ORDER BY id DESC
-        ''', (value,))
+                    SELECT id, hash, previous_hash, data, reference
+                    FROM {blockchain_name}
+                    WHERE {criteria} = ? AND reference IS NOT NULL
+                    ORDER BY id DESC
+                ''', (value,))
         blocks = cursor.fetchall()
 
         if not blocks:
-            return jsonify({'error': f'No blocks found with {criteria} equal to {value}'}), 404
+            click.echo(f'No blocks found with {criteria} equal to {value}')
+            return
 
         # Update the block with the highest ID
         latest_block = blocks[0]
@@ -439,60 +414,58 @@ def update_block_by_criteria():
 
         # Delete the old reference
         cursor.execute(f'''
-            UPDATE {blockchain_name}
-            SET reference = NULL
-            WHERE id = ?
-        ''', (block_id,))
+                    UPDATE {blockchain_name}
+                    SET reference = NULL
+                    WHERE id = ?
+                ''', (block_id,))
         conn.commit()
 
         # Add a new block with the updated data
         new_block_hash = hash_data(new_data + latest_hash)
         if add_block(blockchain_name, new_block_hash, new_data, old_reference):
-            return jsonify({
-                'message': f'Block with {criteria}={value} updated successfully. Updated block ID: {block_id}'
-            }), 200
+            click.echo(f'Block with {criteria}={value} updated successfully. Updated block ID: {block_id}')
         else:
-            return jsonify({'error': 'Failed to update block'}), 500
+            click.echo('Failed to update block')
     except Exception as e:
-        return jsonify({'error': f'Failed to update block: {str(e)}'}), 500
+        click.echo(f'Failed to update block: {str(e)}')
     finally:
         conn.close()
 
+        # Search in Blockchain
 
-# Search in Blockchain
-@app.route('/search_in_blockchain', methods=['GET'])
-def search_blockchain_endpoint():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    criteria = data['criteria']
-    value = data['value']
+    @click.command()
+    @click.argument('blockchain_name')
+    @click.argument('criteria')
+    @click.argument('value')
+    def search_blockchain_cli(blockchain_name, criteria, value):
+        result = search_blockchain(blockchain_name, criteria, value)
+        if result is not None:
+            click.echo(f'Result: {result}')
+        else:
+            click.echo('No matching data found in the blockchain')
 
-    if not blockchain_name or not criteria or not value:
-        return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
+    # Verify Blockchain Integrity
+    @click.command()
+    @click.argument('blockchain_name')
+    def verify_blockchain_cli(blockchain_name):
+        result = verify_blockchain_integrity(blockchain_name)
+        click.echo(result)
 
-    result = search_blockchain(blockchain_name, criteria, value)
+    # Click group
+    @click.group()
+    def cli():
+        pass
 
-    if result is not None:
-        return jsonify({'result': result}), 200
-    else:
-        return jsonify({'message': 'No matching data found in the blockchain'}), 404
+    # Add commands to the group
+    cli.add_command(create_blockchain)
+    cli.add_command(delete_blockchain_cli)
+    cli.add_command(store_in_blockchain_hashed)
+    cli.add_command(store_in_blockchain)
+    cli.add_command(delete_reference_by_id)
+    cli.add_command(update_block_by_id)
+    cli.add_command(update_block_by_criteria)
+    cli.add_command(search_blockchain_cli)
+    cli.add_command(verify_blockchain_cli)
 
-
-# Verify Blockchain Integrity Endpoint
-@app.route('/verify_blockchain', methods=['GET'])
-def verify_blockchain():
-    data = request.get_json()
-    blockchain_name = data['blockchain_name']
-    return verify_blockchain_integrity(blockchain_name)
-
-dummy_api_keys = ["doesntmatter"]
-
-@app.before_request
-def before_request():
-    api_key = request.headers.get('apikey')
-    if not api_key or api_key not in dummy_api_keys:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-if __name__ == '__main__':
-    init_db()
-    app.run()
+    if __name__ == '__main__':
+        cli()
