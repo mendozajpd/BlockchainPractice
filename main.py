@@ -477,6 +477,46 @@ def search_blockchain_endpoint():
     else:
         return jsonify({'message': 'No matching data found in the blockchain'}), 404
 
+# List Blockchains
+@app.route('/list_blockchains', methods=['GET'])
+def list_blockchains():
+    conn, cursor = open_database('blockchain_database.db')
+    try:
+        cursor.execute('SELECT name FROM blockchains')
+        blockchains = [row[0] for row in cursor.fetchall()]
+        return jsonify({'blockchains': blockchains}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch blockchains: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+# List References in Blockchain
+@app.route('/list_references', methods=['GET'])
+def list_references():
+    data = request.get_json()
+    blockchain_name = data['blockchain_name']
+
+    if not blockchain_name:
+        return jsonify({'error': 'Blockchain name is required'}), 400
+
+    conn, cursor = open_database('blockchain_database.db')
+
+    try:
+        cursor.execute(f'''
+            SELECT reference
+            FROM {blockchain_name}
+            WHERE reference IS NOT NULL
+        ''')
+        references = [row[0] for row in cursor.fetchall()]
+
+        if references:
+            return jsonify({'references': references}), 200
+        else:
+            return jsonify({'message': f'No references found for {blockchain_name}'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Failed to list references: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 # Verify Blockchain Integrity Endpoint
 @app.route('/verify_blockchain', methods=['GET'])
