@@ -18,7 +18,7 @@ class BlockchainCmd(cmd2.Cmd):
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
     create_parser.add_argument('-bn', '--blockchain_name')
-    create_parser.add_argument('-type', '--blockchain_type')
+    create_parser.add_argument('-type', '--blockchain_type', choices=['private','public'])
     create_parser.add_argument('-pass', '--blockchain_password')
 
     # Delete blockchain
@@ -27,7 +27,7 @@ class BlockchainCmd(cmd2.Cmd):
 
     # Verify blockchain
     verify_parser = Cmd2ArgumentParser()
-    verify_parser.add_argument('-bn', '--blockchain_name', help="The name of the blockchain to verify.")
+    verify_parser.add_argument('-bn', '--blockchain_name')
 
     # Store
     store_parser = Cmd2ArgumentParser()
