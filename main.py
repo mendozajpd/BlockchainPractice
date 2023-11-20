@@ -26,14 +26,68 @@ def close_connection(exception):
 def init_db():
     with app.app_context():
         db = get_db()
-        db.execute('''
-        CREATE TABLE IF NOT EXISTS blockchains
-        (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-         name TEXT,
-         type TEXT,
-         password TEXT)
-    ''')
+        cursor = db.cursor()
+
+        # Create Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Users
+            (
+                UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+                Username TEXT,
+                Password TEXT,
+                Email TEXT,
+                APIKey INTEGER,
+                isAdmin BOOLEAN,
+                CreatedAt TIMESTAMP,
+                UpdatedAt TIMESTAMP,
+                FOREIGN KEY (APIKey) REFERENCES APIKeys(APIKey)
+            )
+        ''')
+
+        # Create Blockchains table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Blockchains
+            (
+                BlockchainID INTEGER PRIMARY KEY AUTOINCREMENT,
+                UserID INTEGER,
+                BlockchainName TEXT,
+                IsPublic BOOLEAN,
+                CreatedAt TIMESTAMP,
+                UpdatedAt TIMESTAMP,
+                FOREIGN KEY (UserID) REFERENCES Users(UserID)
+            )
+        ''')
+
+        # Create APIKeys table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS APIKeys
+            (
+                APIKey INTEGER PRIMARY KEY,
+                UserID INTEGER,
+                CreatedAt TIMESTAMP,
+                UpdatedAt TIMESTAMP,
+                FOREIGN KEY (UserID) REFERENCES Users(UserID)
+            )
+        ''')
+
+        # Create Logs table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Logs
+            (
+                LogID INTEGER PRIMARY KEY,
+                UserID INTEGER,
+                Action TEXT,
+                BlockchainID INTEGER,
+                Timestamp TIMESTAMP,
+                Hash TEXT,
+                PreviousHash TEXT,
+                FOREIGN KEY (UserID) REFERENCES Users(UserID),
+                FOREIGN KEY (BlockchainID) REFERENCES Blockchains(BlockchainID)
+            )
+        ''')
+
         db.commit()
+
 
 
 # Hashing
