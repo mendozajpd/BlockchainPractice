@@ -1,11 +1,13 @@
 import sqlite3
-from flask import Flask, g, request, jsonify
+from flask import Flask, g, request, jsonify, session
 import hashlib
+import secrets
 
 app = Flask(__name__)
 
 # Database config
-DATABASE = 'blockchain_database.db'
+DATABASE = 'BSS.db'
+app.secret_key = 'testsecretkey'
 
 
 def get_db():
@@ -37,7 +39,7 @@ def init_db():
                 Password TEXT,
                 Email TEXT,
                 APIKey INTEGER,
-                isAdmin BOOLEAN,
+                isAdmin INTEGER,
                 CreatedAt TIMESTAMP,
                 UpdatedAt TIMESTAMP,
                 FOREIGN KEY (APIKey) REFERENCES APIKeys(APIKey)
@@ -50,8 +52,9 @@ def init_db():
             (
                 BlockchainID INTEGER PRIMARY KEY AUTOINCREMENT,
                 UserID INTEGER,
-                BlockchainName TEXT,
-                IsPublic BOOLEAN,
+                blockchain_name TEXT,
+                isPublic INTEGER,
+                blockchain_password,
                 CreatedAt TIMESTAMP,
                 UpdatedAt TIMESTAMP,
                 FOREIGN KEY (UserID) REFERENCES Users(UserID)
@@ -104,7 +107,7 @@ def open_database(database_name):
 
 # Blockchain Integrity Verification
 def verify_blockchain_integrity(blockchain_name):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         cursor.execute(f'''
@@ -132,7 +135,7 @@ def verify_blockchain_integrity(blockchain_name):
 
 # Create Genesis Block
 def create_genesis_block(blockchain_name):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
     genesis_hash = hash_data("Genesis Block")
 
     try:
@@ -151,7 +154,7 @@ def create_genesis_block(blockchain_name):
 
 # Add Block to Blockchain
 def add_block(blockchain_name, hash_value, data, reference):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
     previous_hash = get_latest_hash_by_max_id(blockchain_name)
 
     try:
@@ -171,7 +174,7 @@ def add_block(blockchain_name, hash_value, data, reference):
 
 # Get Latest Hash from Blockchain
 def get_latest_hash_by_max_id(blockchain_name):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         cursor.execute(f'''
@@ -194,14 +197,14 @@ def get_latest_hash_by_max_id(blockchain_name):
 
 # Delete Blockchain
 def delete_blockchain(blockchain_name):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         # Drop the blockchain table
         cursor.execute(f'DROP TABLE IF EXISTS {blockchain_name}')
 
         # Delete the blockchain entry from the blockchains table
-        cursor.execute('DELETE FROM blockchains WHERE name = ?', (blockchain_name,))
+        cursor.execute('DELETE FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
 
         conn.commit()
         return jsonify({'message': f'Blockchain "{blockchain_name}" deleted successfully'}), 200
@@ -212,7 +215,7 @@ def delete_blockchain(blockchain_name):
 
 # SEARCH THE BLOCKCHAIN
 def search_blockchain(blockchain_name, criteria, value):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
     try:
         cursor.execute(f'''
             SELECT data
@@ -231,7 +234,7 @@ def search_blockchain(blockchain_name, criteria, value):
 
 # IF DATA EXISTS IN BLOCKCHAIN
 def is_data_equal_in_blockchain(blockchain_name, criteria, value):
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
     try:
         query = f'''
             SELECT COUNT(*)
@@ -246,30 +249,42 @@ def is_data_equal_in_blockchain(blockchain_name, criteria, value):
     finally:
         conn.close()
 
+# LOGGING IN
+def is_valid_login(username, password):
+    # Query your database to check if the provided username and password are valid
+    conn, cursor = open_database(DATABASE)
+    password = hash_data(password)
+    try:
+        cursor.execute('SELECT * FROM Users WHERE Username = ? AND Password = ?', (username, password))
+        user = cursor.fetchone()
+
+        return user is not None
+    finally:
+        conn.close()
+
 
 # Create Blockchain
 @app.route('/create_blockchain', methods=['POST'])
 def create_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
-    blockchain_type = data['blockchain_type']
+    isPublic = data['isPublic']
     blockchain_password = data['blockchain_password']
 
     # Create the database if it doesn't exist
     init_db()
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         # Check if the blockchain name already exists
-        cursor.execute('SELECT COUNT(*) FROM blockchains WHERE name = ?', (blockchain_name,))
+        cursor.execute('SELECT COUNT(*) FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
         if cursor.fetchone()[0] > 0:
             return jsonify({'error': f'Blockchain "{blockchain_name}" already exists'}), 400
 
         # Insert blockchain metadata into the 'blockchains' table
-        cursor.execute('INSERT INTO blockchains (name, type, password) VALUES (?, ?, ?)',
-                       (blockchain_name, blockchain_type, blockchain_password))
-
+        cursor.execute('INSERT INTO blockchains (blockchain_name, isPublic, blockchain_password, CreatedAt, UpdatedAt) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+                       (blockchain_name, int(isPublic), blockchain_password))
         # Create a new table for the blockchain to store its blocks
         cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS {blockchain_name}
@@ -321,7 +336,7 @@ def store_in_blockchain_hashed():
     hashed_data = hash_data(data_to_store + latest_hash)
     hashed = hash_data(hashed_data + latest_hash)
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         cursor.execute(f'''
@@ -352,7 +367,7 @@ def store_in_blockchain():
     latest_hash = get_latest_hash_by_max_id(blockchain_name)
     block_hash = hash_data(data_to_store + latest_hash)
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         cursor.execute(f'''
@@ -378,7 +393,7 @@ def delete_reference_by_id():
     if not blockchain_name or not block_id:
         return jsonify({'error': 'Blockchain name and block ID are required'}), 400
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         # Check if the block with the specified ID exists and has a non-null reference
@@ -418,7 +433,7 @@ def update_block_by_id():
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         # Check if the block with the specified ID exists and has a non-null reference
@@ -469,7 +484,7 @@ def update_block_by_criteria():
     if not blockchain_name or not criteria or not value or not new_data:
         return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         # Check if there are blocks with the specified criteria
@@ -534,9 +549,9 @@ def search_blockchain_endpoint():
 # List Blockchains
 @app.route('/list_blockchains', methods=['GET'])
 def list_blockchains():
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
     try:
-        cursor.execute('SELECT name FROM blockchains')
+        cursor.execute('SELECT blockchain_name FROM blockchains')
         blockchains = [row[0] for row in cursor.fetchall()]
         return jsonify({'blockchains': blockchains}), 200
     except Exception as e:
@@ -553,7 +568,7 @@ def list_references():
     if not blockchain_name:
         return jsonify({'error': 'Blockchain name is required'}), 400
 
-    conn, cursor = open_database('blockchain_database.db')
+    conn, cursor = open_database(DATABASE)
 
     try:
         cursor.execute(f'''
@@ -572,6 +587,7 @@ def list_references():
     finally:
         conn.close()
 
+
 # Verify Blockchain Integrity Endpoint
 @app.route('/verify_blockchain', methods=['GET'])
 def verify_blockchain():
@@ -579,6 +595,101 @@ def verify_blockchain():
     blockchain_name = data['blockchain_name']
     return verify_blockchain_integrity(blockchain_name)
 
+
+# User Creation
+@app.route('/create_user', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+    email = data['email']
+    is_admin = data.get('is_admin', False)  # Default to False if not provided
+
+    # Check if the username already exists
+    if is_data_equal_in_blockchain('Users', 'Username', username):
+        return jsonify({'error': f'Username "{username}" already exists'}), 400
+
+    # Hash the password before storing it in the database
+    hashed_password = hash_data(password)
+
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Insert user data into the 'Users' table
+        cursor.execute('''
+            INSERT INTO Users (Username, Password, Email, isAdmin, CreatedAt, UpdatedAt)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ''', (username, hashed_password, email, int(is_admin)))
+
+        conn.commit()
+
+        return jsonify({'message': f'User "{username}" created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to create user: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+
+# LOGGING IN
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    # Check if the username and password are valid (you should replace this with your authentication logic)
+    if is_valid_login(username, password):
+        # Check if the user is already logged in
+        if session.get('logged_in'):
+            return jsonify({'error': 'User is already logged in'}), 400
+
+        # Set the user as logged in using Flask session
+        session['logged_in'] = True
+        session['username'] = username
+
+        return jsonify({'message': 'Login successful'}), 200
+    else:
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    # Check if the user is logged in before attempting to logout
+    if session.get('logged_in'):
+        # Clear the session
+        session.clear()
+        return jsonify({'message': 'Logout successful'}), 200
+    else:
+        return jsonify({'error': 'Not logged in'}), 401
+
+# Generate a Random API Key
+@app.route('/generate_api_key', methods=['POST'])
+def generate_api_key():
+    # Check if the user is logged in and is an admin
+    if not g.logged_in or not session.get('username') or not is_admin_user(session.get('username')):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Generate a random API key
+    api_key = secrets.token_hex(16)
+
+    # Add the API key to your dummy_api_keys list (you should replace this with your actual storage mechanism)
+    dummy_api_keys.append(api_key)
+
+    return jsonify({'api_key': api_key}), 201
+
+# Helper function to check if a user is an admin (you can modify this based on your actual user authentication logic)
+def is_admin_user(username):
+    conn, cursor = open_database(DATABASE)
+    try:
+        cursor.execute('SELECT isAdmin FROM Users WHERE Username = ?', (username,))
+        result = cursor.fetchone()
+        return result and result[0] == 1
+    except Exception as e:
+        print(f'Error checking admin status: {str(e)}')
+        return False
+    finally:
+        conn.close()
+
+# Should include more
 dummy_api_keys = ["doesntmatter"]
 
 @app.before_request
@@ -586,6 +697,9 @@ def before_request():
     api_key = request.headers.get('apikey')
     if not api_key or api_key not in dummy_api_keys:
         return jsonify({'error': 'Unauthorized'}), 401
+
+    # Check if the user is logged in
+    g.logged_in = session.get('logged_in', False)
 
 if __name__ == '__main__':
     init_db()

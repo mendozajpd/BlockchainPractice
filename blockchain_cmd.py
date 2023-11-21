@@ -18,7 +18,7 @@ class BlockchainCmd(cmd2.Cmd):
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
     create_parser.add_argument('-bn', '--blockchain_name')
-    create_parser.add_argument('-type', '--blockchain_type', choices=['private','public'])
+    create_parser.add_argument('-pub', '--isPublic', choices=['1','0'])
     create_parser.add_argument('-pass', '--blockchain_password')
 
     # Delete blockchain
@@ -86,11 +86,11 @@ class BlockchainCmd(cmd2.Cmd):
         Create a new blockchain using the provided code.
 
         Usage:
-        create <blockchain_name> <blockchain_type> <blockchain_password>
+        create <blockchain_name> <isPublic> <blockchain_password>
         """
         if not args.blockchain_name:
             print("Error: Blockchain name cannot be empty.")
-            print("Usage: create -bn <blockchain_name> -type <blockchain_type> -pass <blockchain_password>")
+            print("Usage: create -bn <blockchain_name> -pub <isPublic> -pass <blockchain_password>")
             print()
             return
 
@@ -101,7 +101,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
-            'blockchain_type': args.blockchain_type,
+            'isPublic': args.isPublic,
             'blockchain_password': args.blockchain_password
         })
 
