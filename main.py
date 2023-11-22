@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, g, request, jsonify, session
 import hashlib
 import secrets
+import uuid
 
 app = Flask(__name__)
 
@@ -32,60 +33,61 @@ def init_db():
 
         # Create Users table
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Users
+            CREATE TABLE IF NOT EXISTS users
             (
-                UserID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Username TEXT,
-                Password TEXT,
-                Email TEXT,
-                APIKey INTEGER,
-                isAdmin INTEGER,
-                CreatedAt TIMESTAMP,
-                UpdatedAt TIMESTAMP,
-                FOREIGN KEY (APIKey) REFERENCES APIKeys(APIKey)
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                password TEXT,
+                email TEXT,
+                api_key INTEGER,
+                is_admin INTEGER,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                FOREIGN KEY (api_key) REFERENCES api_keys(api_key)
             )
         ''')
 
         # Create Blockchains table
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Blockchains
+            CREATE TABLE IF NOT EXISTS blockchains
             (
-                BlockchainID INTEGER PRIMARY KEY AUTOINCREMENT,
-                UserID INTEGER,
+                blockchain_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
                 blockchain_name TEXT,
-                isPublic INTEGER,
-                blockchain_password,
-                CreatedAt TIMESTAMP,
-                UpdatedAt TIMESTAMP,
-                FOREIGN KEY (UserID) REFERENCES Users(UserID)
+                is_public INTEGER,
+                blockchain_password TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
         ''')
 
-        # Create APIKeys table
+        # API KEYS TABLE
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS APIKeys
+            CREATE TABLE IF NOT EXISTS api_keys
             (
-                APIKey INTEGER PRIMARY KEY,
-                UserID INTEGER,
-                CreatedAt TIMESTAMP,
-                UpdatedAt TIMESTAMP,
-                FOREIGN KEY (UserID) REFERENCES Users(UserID)
+                api_key TEXT PRIMARY KEY,
+                user_id INTEGER,
+                api_name TEXT DEFAULT 'Secret Key',
+                created_at TIMESTAMP,
+                last_used TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
         ''')
 
         # Create Logs table
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Logs
+            CREATE TABLE IF NOT EXISTS logs
             (
-                LogID INTEGER PRIMARY KEY,
-                UserID INTEGER,
-                Action TEXT,
-                BlockchainID INTEGER,
-                Timestamp TIMESTAMP,
-                Hash TEXT,
-                PreviousHash TEXT,
-                FOREIGN KEY (UserID) REFERENCES Users(UserID),
-                FOREIGN KEY (BlockchainID) REFERENCES Blockchains(BlockchainID)
+                log_id INTEGER PRIMARY KEY,
+                user_id INTEGER,
+                action TEXT,
+                blockchain_id INTEGER,
+                timestamp TIMESTAMP,
+                hash TEXT,
+                previous_hash TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (blockchain_id) REFERENCES blockchains(blockchain_id)
             )
         ''')
 
@@ -255,10 +257,27 @@ def is_valid_login(username, password):
     conn, cursor = open_database(DATABASE)
     password = hash_data(password)
     try:
-        cursor.execute('SELECT * FROM Users WHERE Username = ? AND Password = ?', (username, password))
+        cursor.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
         user = cursor.fetchone()
 
         return user is not None
+    finally:
+        conn.close()
+
+def get_user_id(username):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        cursor.execute('SELECT user_id FROM users WHERE username = ?', (username,))
+        user = cursor.fetchone()
+
+        if user:
+            return user[0]
+        else:
+            return None
+    except Exception as e:
+        print(f'Failed to get user ID: {str(e)}')
+        return None
     finally:
         conn.close()
 
@@ -629,6 +648,35 @@ def create_user():
     finally:
         conn.close()
 
+# Register User
+@app.route('/register', methods=['POST'])
+def register_user():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+
+    # Check if the username is already taken
+    if is_username_taken(username):
+        return jsonify({'error': 'Username is already taken'}), 400
+
+    # Hash the password before storing it
+    hashed_password = hash_data(password)
+
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Insert the new user into the 'users' table
+        cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed_password))
+        conn.commit()
+
+        return jsonify({'message': f'User "{username}" registered successfully'}), 201
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to register user: {str(e)}'}), 500
+
+    finally:
+        conn.close()
+
 
 # LOGGING IN
 @app.route('/login', methods=['POST'])
@@ -661,36 +709,55 @@ def logout():
     else:
         return jsonify({'error': 'Not logged in'}), 401
 
-# Generate a Random API Key
+
+
+# API
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
-    # Check if the user is logged in and is an admin
-    if not g.logged_in or not session.get('username') or not is_admin_user(session.get('username')):
+    # Check if the user is logged in
+    if not g.logged_in or not session.get('username'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # Generate a random API key
-    api_key = secrets.token_hex(16)
+    # Generate a random API key (UUID)
+    api_key = str(uuid.uuid4())
 
-    # Add the API key to your dummy_api_keys list (you should replace this with your actual storage mechanism)
-    dummy_api_keys.append(api_key)
+    # Get the user ID based on the logged-in username
+    username = session.get('username')
+    user_id = get_user_id(username)
 
-    return jsonify({'api_key': api_key}), 201
+    if user_id is None:
+        return jsonify({'error': 'User not found'}), 404
 
-# Helper function to check if a user is an admin (you can modify this based on your actual user authentication logic)
-def is_admin_user(username):
+    # Get the API name from the request or use the default
+    api_name = request.get_json().get('api_name', 'Secret Key')
+
+    # Add the API key to the APIKeys table
     conn, cursor = open_database(DATABASE)
+
     try:
-        cursor.execute('SELECT isAdmin FROM Users WHERE Username = ?', (username,))
-        result = cursor.fetchone()
-        return result and result[0] == 1
+        print(f'api_key: {api_key}, user_id: {user_id}, api_name: {api_name}')
+
+        cursor.execute('''
+            INSERT INTO api_keys (api_key, user_id, api_name, created_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (api_key, user_id, api_name))
+
+        conn.commit()
+
+        return jsonify({'api_key': api_key, 'api_name': api_name}), 201
     except Exception as e:
-        print(f'Error checking admin status: {str(e)}')
-        return False
+        print(f'Error: {str(e)}')
+        return jsonify({'error': f'Failed to generate API key: {str(e)}'}), 500
     finally:
         conn.close()
 
+
+
+
 # Should include more
 dummy_api_keys = ["doesntmatter"]
+
+
 
 @app.before_request
 def before_request():
