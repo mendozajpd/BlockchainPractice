@@ -1,7 +1,8 @@
 import sqlite3
-from flask import Flask, g, request, jsonify, session
+from flask import Flask, g, request, jsonify, session, render_template
 import hashlib
 import secrets
+
 
 app = Flask(__name__)
 
@@ -695,11 +696,17 @@ dummy_api_keys = ["doesntmatter"]
 @app.before_request
 def before_request():
     api_key = request.headers.get('apikey')
-    if not api_key or api_key not in dummy_api_keys:
-        return jsonify({'error': 'Unauthorized'}), 401
+    # if not api_key or api_key not in dummy_api_keys:
+    #     return jsonify({'error': 'Unauthorized'}), 401
 
     # Check if the user is logged in
     g.logged_in = session.get('logged_in', False)
+
+# HTML Template
+# [Index]
+@app.route('/')
+def index():
+    return render_template('html/test.html')
 
 if __name__ == '__main__':
     init_db()
