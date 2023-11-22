@@ -39,7 +39,7 @@ def init_db():
                 username TEXT,
                 password TEXT,
                 email TEXT,
-                api_key INTEGER,
+                session_token TEXT,
                 is_admin INTEGER,
                 created_at TIMESTAMP,
                 updated_at TIMESTAMP,
@@ -281,13 +281,36 @@ def get_user_id(username):
     finally:
         conn.close()
 
+def is_valid_api_key(api_key):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the provided API key exists
+        cursor.execute('SELECT COUNT(*) FROM api_keys WHERE api_key = ?', (api_key,))
+        result = cursor.fetchone()
+
+        # If the count is greater than 0, the API key is valid
+        return result[0] > 0
+    except Exception as e:
+        print(f'Error: {str(e)}')
+        return False
+    finally:
+        conn.close()
+
+def validate_api_key():
+    api_key = request.headers.get('apikey')
+    if not api_key or not is_valid_api_key(api_key):
+        return jsonify({'error': 'Unauthorized'}), 401
+    else:
+        return None
+
 
 # Create Blockchain
 @app.route('/create_blockchain', methods=['POST'])
 def create_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
-    isPublic = data['isPublic']
+    is_public = data['is_public']
     blockchain_password = data['blockchain_password']
 
     # Create the database if it doesn't exist
@@ -302,8 +325,8 @@ def create_blockchain():
             return jsonify({'error': f'Blockchain "{blockchain_name}" already exists'}), 400
 
         # Insert blockchain metadata into the 'blockchains' table
-        cursor.execute('INSERT INTO blockchains (blockchain_name, isPublic, blockchain_password, CreatedAt, UpdatedAt) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-                       (blockchain_name, int(isPublic), blockchain_password))
+        cursor.execute('INSERT INTO blockchains (blockchain_name, is_public, blockchain_password, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+                       (blockchain_name, int(is_public), blockchain_password))
         # Create a new table for the blockchain to store its blocks
         cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS {blockchain_name}
@@ -625,7 +648,7 @@ def create_user():
     is_admin = data.get('is_admin', False)  # Default to False if not provided
 
     # Check if the username already exists
-    if is_data_equal_in_blockchain('Users', 'Username', username):
+    if is_data_equal_in_blockchain('users', 'username', username):
         return jsonify({'error': f'Username "{username}" already exists'}), 400
 
     # Hash the password before storing it in the database
@@ -634,9 +657,9 @@ def create_user():
     conn, cursor = open_database(DATABASE)
 
     try:
-        # Insert user data into the 'Users' table
+        # Insert user data into the 'users' table
         cursor.execute('''
-            INSERT INTO Users (Username, Password, Email, isAdmin, CreatedAt, UpdatedAt)
+            INSERT INTO users (username, password, email, is_admin, created_at, updated_at)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ''', (username, hashed_password, email, int(is_admin)))
 
@@ -676,7 +699,6 @@ def register_user():
 
     finally:
         conn.close()
-
 
 # LOGGING IN
 @app.route('/login', methods=['POST'])
@@ -728,8 +750,8 @@ def generate_api_key():
     if user_id is None:
         return jsonify({'error': 'User not found'}), 404
 
-    # Get the API name from the request or use the default
-    api_name = request.get_json().get('api_name', 'Secret Key')
+    # Get the API name from the request or use the default "Secret Key" if it's empty
+    api_name = request.get_json().get('api_name') or 'Secret Key'
 
     # Add the API key to the APIKeys table
     conn, cursor = open_database(DATABASE)
@@ -751,22 +773,49 @@ def generate_api_key():
     finally:
         conn.close()
 
+# Display All API Keys for the Logged-in User
+@app.route('/display_api_keys', methods=['GET'])
+def display_api_keys():
+    # Check if the user is logged in
+    if not g.logged_in or not session.get('username'):
+        return jsonify({'error': 'Unauthorized'}), 401
 
+    # Get the user ID based on the logged-in username
+    username = session.get('username')
+    user_id = get_user_id(username)
 
+    if user_id is None:
+        return jsonify({'error': 'User not found'}), 404
 
-# Should include more
-dummy_api_keys = ["doesntmatter"]
+    # Fetch all API keys associated with the user from the database
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        cursor.execute('''
+            SELECT api_name, created_at, last_used
+            FROM api_keys
+            WHERE user_id = ?
+        ''', (user_id,))
+
+        api_keys = [{'api_name': row[0], 'created_at': row[1], 'last_used': row[2]} for row in cursor.fetchall()]
+
+        return jsonify({'api_keys': api_keys}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch API keys: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 
 
 @app.before_request
 def before_request():
     api_key = request.headers.get('apikey')
-    if not api_key or api_key not in dummy_api_keys:
+    if not api_key or not is_valid_api_key(api_key):
         return jsonify({'error': 'Unauthorized'}), 401
 
     # Check if the user is logged in
     g.logged_in = session.get('logged_in', False)
+
 
 if __name__ == '__main__':
     init_db()
