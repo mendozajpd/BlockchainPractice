@@ -123,8 +123,6 @@ def verify_blockchain_integrity(blockchain_name):
         ''')
         blocks = cursor.fetchall()
 
-        previous_hash = ""
-
         for block in blocks:
             block_id, hash, prev_hash, data = block
             calculated_hash = hash_data(data + prev_hash)
@@ -1101,7 +1099,7 @@ def list_references():
             FROM {blockchain_name}
             WHERE reference IS NOT NULL
         ''')
-        references = [row[0] for row in cursor.fetchall()]
+        references = list(set(row[0] for row in cursor.fetchall()))
 
         if references:
             return jsonify({'references': references}), 200
@@ -1312,6 +1310,56 @@ def display_api_keys():
         return jsonify({'api_keys': api_keys}), 200
     except Exception as e:
         return jsonify({'error': f'Failed to fetch API keys: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+# Revoke API Key by API Name
+@app.route('/revoke_api_key', methods=['POST'])
+def revoke_api_key():
+    # Check if the user is logged in
+    if not g.logged_in or not session.get('username'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Get the user ID based on the logged-in username
+    username = session.get('username')
+    user_id = get_user_id(username)
+
+    if user_id is None:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Get API name from the request
+    api_name_to_revoke = request.get_json().get('api_name')
+
+    if not api_name_to_revoke:
+        return jsonify({'error': 'API name is required'}), 400
+
+    # Revoke the API key for the specified API name
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the API key exists for the user and API name
+        cursor.execute('''
+            SELECT api_key
+            FROM api_keys
+            WHERE user_id = ? AND api_name = ?
+        ''', (user_id, api_name_to_revoke))
+
+        api_key_row = cursor.fetchone()
+
+        if api_key_row is None:
+            return jsonify({'error': f'API key not found for API name: {api_name_to_revoke}'}), 404
+
+        # Revoke the API key by deleting it from the database
+        cursor.execute('''
+            DELETE FROM api_keys
+            WHERE user_id = ? AND api_name = ?
+        ''', (user_id, api_name_to_revoke))
+
+        conn.commit()
+
+        return jsonify({'message': f'API key for {api_name_to_revoke} revoked successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to revoke API key: {str(e)}'}), 500
     finally:
         conn.close()
 
