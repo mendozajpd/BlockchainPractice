@@ -17,17 +17,17 @@
                 <h1>BSS</h1>
             </div>
             <ul>
-                <li>Home</li>
+                <li  onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
                 <!-- Add Flask Navigation to Documentation Page -->
                 <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
-                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li id="active">Download</li>
                 <li onclick="window.location.href='{{ url_for('web_register') }}'">Register</li>
             </ul>
         </nav>
     <div class="container">
         <div class="download-container">
             <div class="download-text">
-                <h1>Download This App</h1>
+                <h1>Download The File</h1>
                 <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Quos, quo? Assumenda a, omnis totam pariatur labore ex aliquam? Doloremque labore adipisci culpa repellendus quaerat dolores perspiciatis odit sapiente libero fugiat?</p>
             </div>
         </div>
@@ -35,15 +35,50 @@
             <figure>
                 <img src="{{ url_for('static', filename='img/logo.png') }}">
             </figure>
-            <button><img src="{{ url_for('static', filename='img/logo.png') }}"><i>Download Terminal</i></button>
+            <button id="downloadButton"><img src="{{ url_for('static', filename='img/logo.png') }}"><i>Download Terminal</i></button>
         </div>
     </div>
     </header>
-            <!-- particles.js container -->
-            <div id="particles-js"></div>
-            <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
-            <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
-            <script src="{{ url_for('static', filename='js/particle.js') }}"></script>
+<!-- particles.js container -->
+<div id="particles-js"></div>
+
+
+
+<!-- stats.js lib -->
+<script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> 
+<script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="{{ url_for('static', filename='js/particle.js') }}"></script>
+
+<!-- Internal JS for downloading the exe file. -->
+<script>
+document.getElementById('downloadButton').addEventListener('click', function() {
+    downloadImage();
+});
+
+function downloadImage() {
+    // File path of the exe file.
+    let fileUrl = '{{ url_for("static", filename="dist/blockchain_cmd.exe") }}';
+
+    // Create a temporary link element
+    let link = document.createElement('a');
+    link.href = fileUrl;
+
+    // Specify the name for the downloaded file (optional)
+    link.download = 'blockchain_cmd.exe';
+
+    // Append the link to the body
+    document.body.appendChild(link);
+
+    // Trigger a click on the link to start the download
+    link.click();
+
+    // Remove the link from the document after a short delay
+    setTimeout(function() {
+        document.body.removeChild(link);
+    }, 100);
+}
+</script>
+<!-- End of the internal script for the download function -->
 </body>
 
 </html>

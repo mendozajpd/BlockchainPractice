@@ -99,6 +99,7 @@ header .container {
     justify-content: center;
     align-items: flex-start;
     max-width: 1300px;
+    padding: 0 4rem;
 }
 .container .download-container {
     width: 50%;
@@ -156,12 +157,12 @@ i {
     display: flex;
     align-items: flex-end;
     justify-content: flex-start;
-    padding: 2% 10% 0 0;
+    padding: 6% 10% 0 0;
     flex-direction: column;
 }
 
 .animation-container figure {
-    width: 240px;
+    width: 150px;
     position: relative;
     overflow: hidden;
     border-radius: 100%;
@@ -171,6 +172,7 @@ i {
     justify-content: center;
     transform: scale(.8);
     transition: all .5s ease;
+    margin-right: 10%;
 }
 
 .animation-container figure:hover {
