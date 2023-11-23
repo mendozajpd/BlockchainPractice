@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/documentation.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"> 
 </head>
-
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
 <body>
     <nav>
         <div class="logo">
@@ -23,9 +24,38 @@
         </ul>
     </nav>
     <div class="container">
+
         <aside>
-            <div class="content"></div>
+
+            <div class="list-container get-started">
+                <h1>Get Started</h1>
+                <ul>
+                    <li id="active">Overview</li>
+                    <li>Introduction</li>
+                    <li>Quickstart</li>
+                    <li>Models</li>
+                    <li>Tutorials</li>
+                </ul>
+            </div>
+
+            <div class="list-container capabilities">
+                <h1>Capabilities</h1>
+                <ul>
+                    <li>Text generation</li>
+                    <li>Function calling</li>
+                    <li>Embeddings</li>
+                    <li>Fine-tuning</li>
+                    <li>Image generation</li>
+                    <li>Vision</li>
+                    <li>Text-to-speech</li>
+                    <li>Image generation</li>
+                    <li>Speech-to-text</li>
+                    <li>Moderations</li>
+                </ul>
+            </div>
+
         </aside>
+
         <section>
             <div class="content"></div>
         </section>
