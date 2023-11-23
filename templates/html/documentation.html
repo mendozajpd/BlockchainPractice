@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/documentation.css') }}">
+</head>
+
+<body>
+    <nav>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}">
+            <h1>BSS</h1>
+        </div>
+        <ul>
+            <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
+            <!-- Add Flask Navigation to Documentation Page -->
+            <li id="active">Documentation</li>
+            <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+            <li onclick="window.location.href='{{ url_for('web_register') }}'">Register</li>
+        </ul>
+    </nav>
+    <div class="container">
+        <aside>
+            <div class="content"></div>
+        </aside>
+        <section>
+            <div class="content"></div>
+        </section>
+    </div>
+</body>
+
+</html>

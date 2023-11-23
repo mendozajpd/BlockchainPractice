@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+}
+
+body {
+    font-family: 'Poppins', 'Roboto', sans-serif;
+    color: rgb(255, 255, 255);
+    cursor: default;
+    overflow: hidden;
+    color: 0d0d23;
+}
+
+header {
+    width: 100%;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    gap: 5rem;
+    padding-bottom: 1rem;
+    z-index: 1;
+    position: relative;
+}
+
+nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 10%;
+    z-index: 2
+}
+
+nav .logo {
+    width: 100px;
+    height: 50px;
+    display: flex;
+    grid-area: 10px;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    gap: 5px;
+    user-select: none;
+}
+
+nav .logo img {
+    width: 40px;
+    height: 40px;
+}
+
+nav ul {
+    display: flex;
+    gap: 20px;
+}
+
+nav ul li {
+    list-style-type: none;
+    cursor: pointer;
+    position: relative;
+    transition: all .5s ease;
+    padding: 5px 0;
+    font-size: .9rem
+}
+
+nav ul li::after {
+    content: "";
+    width: 0;
+    height: 1px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: #00ccff;
+    transition: all .3s ease;
+}
+
+nav ul li:hover::after {
+    width: 100%;
+    box-shadow: 1px 1px 10px rgb(0, 204, 255);
+}
+
+header .header-text {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    flex-direction: column;
+    width: 70%;
+}
+
+header .header-text h1 {
+    font-size: 3.5rem;
+    z-index: 2
+}
+
+
+header .header-text p {
+    font-size: .8rem;
+    z-index: 2
+}
+
+header .header-text p:first-child {
+    /* text-transform: uppercase; */
+}
+
+header .header-text .info {
+    font-size: .8rem;
+    width: 90%;
+    margin-top: 1rem;
+    z-index: 2
+}
+
+header .header-text span {
+    color: transparent;
+    background-clip: text;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, rgba(0, 255, 255, 0), 255, 255), aqua);
+    -webkit-background-clip: text;
+    -webkit-text-stroke: 1px white;
+    animation: glow 2s infinite ease;
+
+}
+
+@keyframes glow {
+    50% {
+        color: rgba(0, 0, 255, 0);
+        -webkit-text-stroke: 1px #0071ce;
+    }
+
+    0%,
+    100% {
+        -webkit-text-stroke: 1px white;
+    }
+}
+
+
+header .header-buttons {
+    display: flex;
+    gap: 10px;
+    z-index: 2
+}
+
+header .header-buttons button {
+    color: #0d0d23;
+    border: 1px solid #fff;
+    padding: 15px 25px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all .3s ease;
+    position: relative;
+    background: white;
+}
+
+
+.header-buttons #get-started:hover {
+    background-color: #0d0d23;
+    border: 1px solid rgb(0, 204, 255);
+    color: white;
+}
+
+#docs-button {
+    background-color: #0d0d23;
+    color: white;
+}
+
+#docs-button:hover {
+    border: 1px solid rgb(0, 204, 255);
+}

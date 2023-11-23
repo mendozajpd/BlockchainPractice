@@ -1,11 +1,12 @@
 import sqlite3
-from flask import Flask, g, request, jsonify, session
+from flask import Flask, g, request, jsonify, session, render_template
 import hashlib
 import secrets
 import uuid
 from datetime import datetime, timedelta
 
-app = Flask(__name__)
+
+app = Flask(__name__, static_url_path='/static', static_folder='static')
 
 # Database config
 DATABASE = 'BSS.db'
@@ -1413,6 +1414,25 @@ def before_request():
         g.is_admin = False
 
 
+# HTML Template
+# [Index]
+@app.route('/')
+def web_index():
+    return render_template('html/index.html')
+@app.route('/documentation')
+def web_documentation():
+    return render_template('html/documentation.html')
+
+@app.route('/download')
+def web_download():
+    return render_template('html/download.html')
+
+@app.route('/register_account')
+def web_register    ():
+    return render_template('html/register.html')
+
+
+
 if __name__ == '__main__':
     init_db()
-    app.run()
+    app.run(debug=True)
