@@ -14,6 +14,7 @@ class BlockchainCmd(cmd2.Cmd):
         self.api_key = api_key
         self.server_url = 'http://127.0.0.1:5000'
         self.prompt = "> "
+        self.session_cookie = ""
 
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
@@ -54,10 +55,22 @@ class BlockchainCmd(cmd2.Cmd):
     update_parser.add_argument('-v', '--value')
     update_parser.add_argument('-n', '--new_data')
 
+    # Update Block by ID
+    update_block_by_id_parser = Cmd2ArgumentParser()
+    update_block_by_id_parser.add_argument('-bn', '--blockchain_name')
+    update_block_by_id_parser.add_argument('-id', '--block_id')
+    update_block_by_id_parser.add_argument('-n', '--new_data')
+
     # Delete
     delete_reference_parser = Cmd2ArgumentParser()
     delete_reference_parser.add_argument('-bn', '--blockchain_name')
     delete_reference_parser.add_argument('-id', '--block_id')
+
+    # Delete Reference by Criteria
+    delete_reference_by_criteria_parser = Cmd2ArgumentParser()
+    delete_reference_by_criteria_parser.add_argument('-bn', '--blockchain_name')
+    delete_reference_by_criteria_parser.add_argument('-c', '--criteria')
+    delete_reference_by_criteria_parser.add_argument('-v', '--value')
 
     # List Blockchains
     list_blockchains_parser = Cmd2ArgumentParser()
@@ -85,6 +98,11 @@ class BlockchainCmd(cmd2.Cmd):
     # Logout
     logout_parser = Cmd2ArgumentParser()
 
+    # API
+    # Generate API Key
+    generate_key_parser = Cmd2ArgumentParser()
+    generate_key_parser.add_argument('-n', '--api_name')
+
     # Show
     show_parser = Cmd2ArgumentParser()
 
@@ -105,11 +123,11 @@ class BlockchainCmd(cmd2.Cmd):
         Create a new blockchain using the provided code.
 
         Usage:
-        create <blockchain_name> <is_public> <blockchain_password>
+        create <blockchain_name> <blockchain_type> <blockchain_password>
         """
         if not args.blockchain_name:
             print("Error: Blockchain name cannot be empty.")
-            print("Usage: create -bn <blockchain_name> -pub <isPublic> -pass <blockchain_password>")
+            print("Usage: create -bn <blockchain_name> -type <blockchain_type> -pass <blockchain_password>")
             print()
             return
 
@@ -126,13 +144,10 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
-            'apikey': api_key  # Include the API key in the headers
+            'Cookie': self.session_cookie,
+            'apikey': api_key
         }
 
-        print(f"Request URL: {url}")
-        print(f"Request Headers: {headers}")
-        print(f"Request Payload: {payload}")
-
         try:
             response = requests.post(url, headers=headers, data=payload)
             response.raise_for_status()
@@ -140,17 +155,6 @@ class BlockchainCmd(cmd2.Cmd):
             print()
         except requests.RequestException as e:
             print(response.text)
-            print(f'Error: Failed to create blockchain. - Check your command - Try \"<command> -h\" for more info {e}')
-            print()
-
-        try:
-            response = requests.post(url, headers=headers, data=payload)
-            response.raise_for_status()
-            print(response.text)
-            print()
-        except requests.RequestException as e:
-            print(response.text)
-            print(f'Error: Failed to create blockchain. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
     @cmd2.with_argparser(delete_parser)
@@ -173,6 +177,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -182,7 +187,7 @@ class BlockchainCmd(cmd2.Cmd):
             print(response.text)
             print()
         except requests.RequestException as e:
-            print(f'Error: Failed to delete blockchain - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(store_parser)
@@ -207,6 +212,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -217,7 +223,7 @@ class BlockchainCmd(cmd2.Cmd):
             print()
 
         except requests.RequestException as e:
-            print(f'Error: Failed to store data in blockchain - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(store_hashed_parser)
@@ -242,6 +248,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -252,7 +259,7 @@ class BlockchainCmd(cmd2.Cmd):
             print()
 
         except requests.RequestException as e:
-            print(f'Error: Failed to store hashed data in blockchain - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(search_parser)
@@ -277,6 +284,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -308,6 +316,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -319,6 +328,51 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(f'Error: Failed to verify blockchain - Check your command - Try \"<command> -h\" for more info')
+            print()
+
+    @cmd2.with_argparser(update_block_by_id_parser)
+    def do_update_by_id(self, args):
+        """
+        Update a block in the blockchain by ID using the provided code.
+
+        Usage:
+        update_block_by_id -bn <blockchain_name> -id <block_id> -n <new_data>
+        """
+        if not args.blockchain_name or not args.block_id or not args.new_data:
+            print("Error: Blockchain name, block ID, and new data are required.")
+            print("Usage: update_block_by_id -bn <blockchain_name> -id <block_id> -n <new_data>")
+            print()
+            return
+
+        update_block_url = f'{self.server_url}/update_block_by_id'
+
+        headers = {
+            'apikey': self.api_key,
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        payload = json.dumps({
+            "blockchain_name": args.blockchain_name,
+            "block_id": args.block_id,
+            "new_data": args.new_data
+        })
+
+        try:
+            response = requests.put(update_block_url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                print("Block updated successfully.")
+            elif response.status_code == 404:
+                print(f'Error: Blockchain "{args.blockchain_name}" or block with ID "{args.block_id}" not found.')
+            else:
+                response.raise_for_status()
+
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to update block by ID. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
     @cmd2.with_argparser(update_parser)
@@ -344,6 +398,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -354,7 +409,98 @@ class BlockchainCmd(cmd2.Cmd):
             print()
 
         except requests.RequestException as e:
-            print(f'Error: Failed to update block by criteria - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
+            print()
+
+    @cmd2.with_argparser(update_block_by_id_parser)
+    def do_update_by_id_hash(self, args):
+        """
+        Update a block in the blockchain by ID as Hash using the provided code.
+
+        Usage:
+        update_block_by_id_as_hash -bn <blockchain_name> -id <block_id> -n <new_data>
+        """
+        if not args.blockchain_name or not args.block_id or not args.new_data:
+            print("Error: Blockchain name, block ID, and new data are required.")
+            print("Usage: update_block_by_id_as_hash -bn <blockchain_name> -id <block_id> -n <new_data>")
+            print()
+            return
+
+        update_block_by_id_as_hash_url = f'{self.server_url}/update_block_by_id_as_hash'
+
+        headers = {
+            'apikey': self.api_key,
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        payload = json.dumps({
+            "blockchain_name": args.blockchain_name,
+            "block_id": args.block_id,
+            "new_data": args.new_data
+        })
+
+        try:
+            response = requests.put(update_block_by_id_as_hash_url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                print("Block updated successfully.")
+            elif response.status_code == 404:
+                print(f'Error: Blockchain "{args.blockchain_name}" or block with ID "{args.block_id}" not found.')
+            else:
+                response.raise_for_status()
+
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to update block by ID as Hash. - Check your command - Try \"<command> -h\" for more info {e}')
+            print()
+
+    @cmd2.with_argparser(update_parser)
+    def do_update_as_hash(self, args):
+        """
+        Update a block in the blockchain by criteria as Hash using the provided code.
+
+        Usage:
+        update_as_hash -bn <blockchain_name> -c <criteria> -v <value> -n <new_data>
+        """
+        if not args.blockchain_name or not args.criteria or not args.value or not args.new_data:
+            print("Error: Blockchain name, criteria, value, and new data are required.")
+            print("Usage: update_block_by_criteria_as_hash -bn <blockchain_name> -c <criteria> -v <value> -n <new_data>")
+            print()
+            return
+
+        update_block_by_criteria_as_hash_url = f'{self.server_url}/update_block_by_criteria_as_hash'
+
+        headers = {
+            'apikey': self.api_key,
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        payload = json.dumps({
+            "blockchain_name": args.blockchain_name,
+            "criteria": args.criteria,
+            "value": args.value,
+            "new_data": args.new_data
+        })
+
+        try:
+            response = requests.put(update_block_by_criteria_as_hash_url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                print("Block updated successfully.")
+            elif response.status_code == 404:
+                print(f'Error: No block found in blockchain "{args.blockchain_name}" matching criteria "{args.criteria}" and value "{args.value}".')
+            else:
+                response.raise_for_status()
+
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to update block by criteria as Hash. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
     @cmd2.with_argparser(delete_reference_parser)
@@ -378,6 +524,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -389,6 +536,54 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(f'Error: Failed to delete reference by ID - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
+            print()
+
+    @cmd2.with_argparser(delete_reference_by_criteria_parser)
+    def do_delete_reference_by_criteria(self, args):
+        """
+        Delete a reference in the blockchain by criteria using the provided code.
+
+        Usage:
+        delete_reference_by_criteria -bn <blockchain_name> -c <criteria> -v <value>
+        """
+        if not args.blockchain_name or not args.criteria or not args.value:
+            print("Error: Blockchain name, criteria, and value are required.")
+            print("Usage: delete_reference_by_criteria -bn <blockchain_name> -c <criteria> -v <value>")
+            print()
+            return
+
+        delete_reference_url = f'{self.server_url}/delete_reference_by_criteria'
+
+        headers = {
+            'apikey': self.api_key,
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        payload = json.dumps({
+            "blockchain_name": args.blockchain_name,
+            "criteria": args.criteria,
+            "value": args.value
+        })
+
+        try:
+            response = requests.delete(delete_reference_url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                print("Reference deleted successfully.")
+            elif response.status_code == 404:
+                print(
+                    f'Error: No references found in blockchain "{args.blockchain_name}" matching criteria "{args.criteria}" and value "{args.value}".')
+            else:
+                response.raise_for_status()
+
+            print()
+
+        except requests.RequestException as e:
+            print(
+                f'Error: Failed to delete reference by criteria. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
     @cmd2.with_argparser(list_blockchains_parser)
@@ -406,7 +601,8 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{server_url}/list_blockchains'
 
         headers = {
-            'apikey': api_key
+            'apikey': api_key,
+            'Cookie': self.session_cookie,
         }
 
         try:
@@ -425,6 +621,7 @@ class BlockchainCmd(cmd2.Cmd):
             print()
         except requests.RequestException as e:
             print(f'Error: Failed to list blockchains - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(list_references_parser)
@@ -447,6 +644,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
             'apikey': api_key
         }
 
@@ -474,8 +672,9 @@ class BlockchainCmd(cmd2.Cmd):
             print(f'Error: Failed to list references - Check your command - Try \"<command> -h\" for more info')
             print()
 
+    #
     @cmd2.with_argparser(address_parser)
-    def do_change_add(self, args):
+    def do_set_add(self, args):
         print()
         """
         Changes the address of the API
@@ -488,12 +687,12 @@ class BlockchainCmd(cmd2.Cmd):
             print()
             return
 
-        print("Address Changed Successfully.")
+        print("Address updated successfully.")
         print()
         self.api_address = args.new_address
 
     @cmd2.with_argparser(key_parser)
-    def do_change_key(self, args):
+    def do_set_key(self, args):
         print()
         """
         Changes the key of the API
@@ -505,7 +704,7 @@ class BlockchainCmd(cmd2.Cmd):
             print("Error: New key cannot be empty.")
             print()
             return
-        print("Key Changed Succesfully.")
+        print("Key updated succesfully.")
         print()
         self.api_key = args.new_key
 
@@ -618,7 +817,8 @@ class BlockchainCmd(cmd2.Cmd):
         })
 
         headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cookie' : self.session_cookie
         }
 
         try:
@@ -629,6 +829,7 @@ class BlockchainCmd(cmd2.Cmd):
             if "Login successful" in response.text:
                 # Set the API key after successful login
                 self.api_key = response.json().get('api_key', '')
+                self.session_cookie = 'session=eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoienhjIn0.ZV-QGw.3xmpDwjHSZlw9f_93rQsnoOxe4U'
                 print("Login successful.")
             else:
                 print("Login failed. Please check your username and password.")
@@ -650,20 +851,63 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{self.server_url}/logout'
 
         payload = ""
-        headers = {}
+        headers = {
+            'Cookie' : self.session_cookie
+        }
         print(f"API Key used in request: {self.api_key}")
 
         try:
             response = requests.post(url, headers=headers, data=payload)
             response.raise_for_status()
             print(response.text)
+            self.session_cookie = ""
             print()
 
         except requests.RequestException as e:
             print(f'Error: Failed to log out. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
+    #API
+    @cmd2.with_argparser(generate_key_parser)
+    def do_apikey_gen(self, args):
+        """
+        Generate a new API key with a specified name using the provided code.
 
+        Usage:
+        apikey_gen -n <api_name>
+        """
+        if not args.api_name:
+            print("Error: API name cannot be empty.")
+            print("Usage: generate_key_with_name -n <api_name>")
+            print()
+            return
+
+        api_key_url = f'{self.server_url}/generate_api_key'
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        payload = json.dumps({
+            "api_name": args.api_name
+        })
+
+        try:
+            response = requests.post(api_key_url, headers=headers, data=payload)
+            response.raise_for_status()
+            api_key = response.json().get('api_key', '')
+
+            if api_key:
+                print(f"Generated API Key for {args.api_name}: {api_key}")
+            else:
+                print("Error: Unable to retrieve the generated API Key.")
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to generate API key - Check your command - Try \"<command> -h\" for more info {e}')
+            print(response.text)
+            print()
 
     def get_base_url(self, api_address):
         print()

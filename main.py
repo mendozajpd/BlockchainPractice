@@ -241,8 +241,14 @@ def get_latest_hash_by_max_id(blockchain_name):
 def delete_blockchain(blockchain_name):
     conn, cursor = open_database(DATABASE)
 
-
     try:
+        # Check if the blockchain exists
+        cursor.execute('SELECT 1 FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
+        blockchain_exists = cursor.fetchone()
+
+        if not blockchain_exists:
+            return jsonify({'error': f'Blockchain does not exist'}), 404
+
         # Drop the blockchain table
         cursor.execute(f'DROP TABLE IF EXISTS {blockchain_name}')
 
@@ -250,7 +256,7 @@ def delete_blockchain(blockchain_name):
         cursor.execute('DELETE FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
 
         conn.commit()
-        return jsonify({'message': f'Blockchain deleted successfully'}), 200
+        return jsonify({'message': f'Blockchain "{blockchain_name}" deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': f'Failed to delete blockchain: {str(e)}'}), 500
     finally:
@@ -386,7 +392,7 @@ def is_valid_api_key(api_key):
 def validate_api_key():
     api_key = request.headers.get('apikey')
     if not api_key or not is_valid_api_key(api_key):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'error': 'UNAUTHORIZED: Invalid API Key'}), 401
     else:
         return None
 
@@ -732,7 +738,6 @@ def delete_reference_by_criteria():
         conn.close()
 
 
-# Update Block by ID
 @app.route('/update_block_by_id', methods=['PUT'])
 def update_block_by_id():
     data = request.get_json()
@@ -746,22 +751,21 @@ def update_block_by_id():
     if not g.logged_in:
         return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
 
-
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
         return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
-    #API CHECK
+    # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
 
-
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
 
     conn, cursor = open_database(DATABASE)
+    block = None  # Define block outside the try block
 
     try:
         # Check if the block with the specified ID exists and has a non-null reference
@@ -821,12 +825,11 @@ def update_block_by_criteria():
     if not g.logged_in:
         return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
 
-
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
         return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
-    #API CHECK
+    # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
@@ -851,7 +854,7 @@ def update_block_by_criteria():
             return jsonify({'error': f'No blocks found with {criteria} equal to {value}'}), 404
 
         # Check if the block is the genesis block
-        if block[0] == 1:
+        if blocks[0][0] == 1:
             return jsonify({'error': 'Cannot delete or update the genesis block'}), 403
 
         # Update the block with the highest ID
