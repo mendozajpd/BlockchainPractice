@@ -113,7 +113,8 @@ form input {
     background: #23232f;
     color: white;
     max-width: 500px;
-    border: 1px solid transparent
+    border: 1px solid transparent;
+    min-width: 400px;
 }
 
 form input:focus {
