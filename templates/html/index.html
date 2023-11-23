@@ -4,11 +4,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test</title>
+    <title>Blockchain Security System</title>
+        <!--    <link rel="stylesheet" href="css/particle.css">-->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/particle.css') }}">
 </head>
 
 <body>
-    <h1>Test Website! Hakdog</h1>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}">
+                <h1>BSS</h1>
+            </div>
+            <ul>
+                <li>Home</li>
+                <!-- Add Flask Navigation to Documentation Page -->
+                <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li onclick="window.location.href='{{ url_for('web_register') }}'">Register</li>
+            </ul>
+        </nav>
+        <div class="header-text">
+            <p>Introducing</p>
+            <h1><span>Blockchain</span> Security System</h1>
+            <p class="info">Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam dolor nisi eos minima, sed
+                perspiciatis architecto suscipit quos, officiis vel iusto repudiandae, quibusdam accusantium. Quo
+                necessitatibus veritatis eius dolor optio!</p>
+        </div>
+        <div class="header-buttons">
+            <!-- Add Flask Navigation to Documentation Page -->
+            <button id="docs-button" onclick="window.location.href='{{ url_for('web_documentation') }}'">
+                <p>Documentation</p>
+            </button>
+            <button id="get-started" onclick="window.location.href='{{ url_for('web_register') }}'">Get Started</button>
+        </div>
+    </header>
+        <!-- particles.js container -->
+        <div id="particles-js"></div>
+    <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
+    <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particle.js') }}"></script>
+
 </body>
 
 </html>

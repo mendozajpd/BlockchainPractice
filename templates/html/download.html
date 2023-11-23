@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/particle.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/download.css') }}">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}">
+                <h1>BSS</h1>
+            </div>
+            <ul>
+                <li>Home</li>
+                <!-- Add Flask Navigation to Documentation Page -->
+                <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li onclick="window.location.href='{{ url_for('web_register') }}'">Register</li>
+            </ul>
+        </nav>
+    <div class="container">
+        <div class="download-container">
+            <div class="download-text">
+                <h1>Download This App</h1>
+                <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Quos, quo? Assumenda a, omnis totam pariatur labore ex aliquam? Doloremque labore adipisci culpa repellendus quaerat dolores perspiciatis odit sapiente libero fugiat?</p>
+            </div>
+        </div>
+        <div class="animation-container">
+            <figure>
+                <img src="{{ url_for('static', filename='img/logo.png') }}">
+            </figure>
+            <button><img src="{{ url_for('static', filename='img/logo.png') }}"><i>Download Terminal</i></button>
+        </div>
+    </div>
+    </header>
+            <!-- particles.js container -->
+            <div id="particles-js"></div>
+            <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
+            <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+            <script src="{{ url_for('static', filename='js/particle.js') }}"></script>
+</body>
+
+</html>

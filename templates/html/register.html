@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/particle.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}">
+                <h1>BSS</h1>
+            </div>
+            <ul>
+                <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
+                <!-- Add Flask Navigation to Documentation Page -->
+                <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li id="active">Register</li>
+            </ul>
+        </nav>
+        <div class="container">
+            <form action="/create_user" method="POST" id="userForm">
+                <p>Start for free</p>
+                <h1>Create new account<span>.</span></h1>
+                    <input type="email" name="email" placeholder="Email" required autocomplete="off">
+                    <input type="text" name="username" placeholder="Username" required autocomplete="off">
+                    <input type="password" name="text" placeholder="Password" required autocomplete="off">
+                    <input type="password-re-enter" name="text" placeholder="Re-Password" required autocomplete="off">
+                <button type="button" onclick="submitForm()">Register</button>
+            </form>
+        </div>
+        <!-- particles.js container -->
+        <div id="particles-js"></div> <!-- stats - count particles -->
+    </header>
+
+    <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
+    <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/registerjs') }}"></script>
+</body>
+
+</html>

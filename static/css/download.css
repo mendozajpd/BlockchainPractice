@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+}
+
+body {
+    font-family: 'Poppins', 'Roboto', sans-serif;
+    color: rgb(255, 255, 255);
+    cursor: default;
+    overflow: hidden;
+    color: 0d0d23;
+}
+
+header {
+    width: 100%;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    gap: 2rem;
+    padding-bottom: 1rem;
+    z-index: 1;
+    position: relative;
+}
+
+nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 10%;
+    z-index: 2;
+    max-width: 1300px;
+}
+
+nav .logo {
+    width: 100px;
+    height: 50px;
+    display: flex;
+    grid-area: 10px;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    gap: 5px;
+    user-select: none;
+}
+
+nav .logo img {
+    width: 40px;
+    height: 40px;
+}
+
+nav ul {
+    display: flex;
+    gap: 20px;
+}
+
+nav ul li {
+    list-style-type: none;
+    cursor: pointer;
+    position: relative;
+    transition: all .5s ease;
+    padding: 5px 0;
+    font-size: .9rem
+}
+
+nav ul li::after {
+    content: "";
+    width: 0;
+    height: 1px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: rgb(0, 204, 255);
+    transition: all .3s ease;
+}
+
+nav ul li:hover::after {
+    width: 100%;
+    box-shadow: 1px 1px 10px rgb(0, 204, 255);
+}
+
+header .container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    max-width: 1300px;
+}
+.container .download-container {
+    width: 50%;
+    height: 100%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10% 0 0 10%;
+    flex-direction: column;
+}
+.container .download-container p {
+    margin-top: .6rem;
+    font-size: .9rem;
+}
+.container .download-container h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.container .animation-container button {
+    padding: 12px 13px;
+    margin-top: 1rem;
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    border: 1.5px solid transparent;
+    transition: border .3s ease;
+    margin-right: 6%;
+}
+
+i {
+    font-style: normal;
+    z-index: 10;
+}
+
+.container .animation-container button:hover {
+    border: 1.5px solid #00ccff;
+    background-color: transparent;
+    color: #fff;
+}
+
+
+.container .animation-container {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 2% 10% 0 0;
+    flex-direction: column;
+}
+
+.animation-container figure {
+    width: 240px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 100%;
+    box-shadow: 0 0 10px #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(.8);
+    transition: all .5s ease;
+}
+
+.animation-container figure:hover {
+    transform: scale(.9);
+}
+
+.animation-container figure img {
+    width: 100%;
+
+}
+.animation-container button img {
+    width: 25px;
+    position: relative;
+}
+
