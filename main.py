@@ -95,9 +95,40 @@ def init_db():
             )
         ''')
 
+        # Check if the admin user already exists
+        cursor.execute('SELECT COUNT(*) FROM users WHERE is_admin = 1')
+        admin_user_count = cursor.fetchone()[0]
+
+        if admin_user_count == 0:
+            # Insert the admin user into the Users table
+            cursor.execute(
+                '''
+                    INSERT INTO users (user_id, username, password, is_admin, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (1, 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 1, formatted_timestamp,formatted_timestamp))
+
         db.commit()
 
+def create_admin_user():
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
 
+        # Check if the admin user already exists
+        cursor.execute('SELECT COUNT(*) FROM users WHERE is_admin = 1')
+        admin_user_count = cursor.fetchone()[0]
+
+        if admin_user_count > 0:
+            print("Admin user already exists.")
+            return
+
+        # Insert the admin user into the Users table
+        cursor.execute('''
+            INSERT INTO users (user_id, username, password, is_admin, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (1, 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 1, formatted_timestamp, formatted_timestamp))
+
+        db.commit()
 
 # Hashing
 def hash_data(data):

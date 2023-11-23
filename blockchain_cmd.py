@@ -18,7 +18,7 @@ class BlockchainCmd(cmd2.Cmd):
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
     create_parser.add_argument('-bn', '--blockchain_name')
-    create_parser.add_argument('-pub', '--isPublic', choices=['1','0'])
+    create_parser.add_argument('-pub', '--is_public', choices=['1','0'])
     create_parser.add_argument('-pass', '--blockchain_password')
 
     # Delete blockchain
@@ -66,6 +66,25 @@ class BlockchainCmd(cmd2.Cmd):
     list_references_parser = Cmd2ArgumentParser()
     list_references_parser.add_argument('-bn', '--blockchain_name')
 
+    # Create User
+    create_user_parser = Cmd2ArgumentParser()
+    create_user_parser.add_argument('-u', '--username')
+    create_user_parser.add_argument('-p', '--password')
+    create_user_parser.add_argument('-a', '--is_admin', choices=['1', '0'])
+
+    # Register
+    register_parser = Cmd2ArgumentParser()
+    register_parser.add_argument('-u', '--username')
+    register_parser.add_argument('-p', '--password')
+
+    # Login
+    login_parser = Cmd2ArgumentParser()
+    login_parser.add_argument('-u', '--username')
+    login_parser.add_argument('-p', '--password')
+
+    # Logout
+    logout_parser = Cmd2ArgumentParser()
+
     # Show
     show_parser = Cmd2ArgumentParser()
 
@@ -86,7 +105,7 @@ class BlockchainCmd(cmd2.Cmd):
         Create a new blockchain using the provided code.
 
         Usage:
-        create <blockchain_name> <isPublic> <blockchain_password>
+        create <blockchain_name> <is_public> <blockchain_password>
         """
         if not args.blockchain_name:
             print("Error: Blockchain name cannot be empty.")
@@ -101,14 +120,18 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
-            'isPublic': args.isPublic,
+            'is_public': args.is_public,
             'blockchain_password': args.blockchain_password
         })
 
         headers = {
             'Content-Type': 'application/json',
-            'apikey': api_key
+            'apikey': api_key  # Include the API key in the headers
         }
+
+        print(f"Request URL: {url}")
+        print(f"Request Headers: {headers}")
+        print(f"Request Payload: {payload}")
 
         try:
             response = requests.post(url, headers=headers, data=payload)
@@ -116,7 +139,18 @@ class BlockchainCmd(cmd2.Cmd):
             print(response.text)
             print()
         except requests.RequestException as e:
-            print(f'Error: Failed to create blockchain. - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
+            print(f'Error: Failed to create blockchain. - Check your command - Try \"<command> -h\" for more info {e}')
+            print()
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(response.text)
+            print()
+        except requests.RequestException as e:
+            print(response.text)
+            print(f'Error: Failed to create blockchain. - Check your command - Try \"<command> -h\" for more info {e}')
             print()
 
     @cmd2.with_argparser(delete_parser)
@@ -498,6 +532,138 @@ class BlockchainCmd(cmd2.Cmd):
         """
         print("Key: ", self.api_key)
         print()
+
+    # USER
+    @cmd2.with_argparser(create_user_parser)
+    def do_create_user(self, args):
+        """
+        Create a new user using the provided code.
+
+        Usage:
+        create_user -u <username> -p <password> -a <is_admin>
+        """
+        if not args.username or not args.password or args.is_admin is None:
+            print("Error: Username, password, and is_admin are required.")
+            print("Usage: create_user -u <username> -p <password> -a <is_admin>")
+            print()
+            return
+
+        api_key = self.api_key
+        server_url = self.server_url
+
+        url = f'{server_url}/create_user'
+
+        payload = {
+            'username': args.username,
+            'password': args.password,
+            'is_admin': args.is_admin
+        }
+
+        headers = {
+            'Content-Type': 'application/json',
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            print(response.text)
+            print()
+        except requests.RequestException as e:
+            print(f'Error: Failed to create user. - Check your command - Try "<command> -h" for more info {e}')
+            print()
+
+    @cmd2.with_argparser(register_parser)
+    def do_register(self, args):
+        """
+        Register a new user using the provided code.
+
+        Usage:
+        register -u <username> -p <password>
+        """
+        url = f'{self.server_url}/register'
+
+        payload = json.dumps({
+            'username': args.username,
+            'password': args.password
+        })
+
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(response.text)
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to register user. - Check your command - Try \"<command> -h\" for more info {e}')
+            print()
+
+    @cmd2.with_argparser(login_parser)
+    def do_login(self, args):
+        """
+        Log in with the provided username and password.
+
+        Usage:
+        login -u <username> -p <password>
+        """
+        url = f'{self.server_url}/login'
+
+        payload = json.dumps({
+            'username': args.username,
+            'password': args.password
+        })
+
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            # Check if the login was successful based on the response content
+            if "Login successful" in response.text:
+                # Set the API key after successful login
+                self.api_key = response.json().get('api_key', '')
+                print("Login successful.")
+            else:
+                print("Login failed. Please check your username and password.")
+
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to log in. - Check your command - Try \"<command> -h\" for more info {e}')
+            print()
+
+    @cmd2.with_argparser(logout_parser)
+    def do_logout(self, args):
+        """
+        Log out the user with the provided username and password.
+
+        Usage:
+        logout -u <username> -p <password>
+        """
+        url = f'{self.server_url}/logout'
+
+        payload = ""
+        headers = {}
+        print(f"API Key used in request: {self.api_key}")
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(response.text)
+            print()
+
+        except requests.RequestException as e:
+            print(f'Error: Failed to log out. - Check your command - Try \"<command> -h\" for more info {e}')
+            print()
+
+
 
     def get_base_url(self, api_address):
         print()
