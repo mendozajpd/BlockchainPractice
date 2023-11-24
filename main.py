@@ -1,5 +1,7 @@
 import sqlite3
-from flask import Flask, g, request, jsonify, session, render_template
+
+import requests
+from flask import Flask, g, request, jsonify, session, render_template, make_response
 import hashlib
 import secrets
 import uuid
@@ -11,12 +13,14 @@ app = Flask(__name__, static_url_path='/static', static_folder='static')
 # Database config
 DATABASE = 'BSS.db'
 app.secret_key = 'testsecretkey'
+app.permanent_session_lifetime = timedelta(days=365)
+
+current_session = ""
 
 # Get the current UTC timestamp
 utc_now = datetime.utcnow()
 local_now = utc_now + timedelta(hours=8)
 formatted_timestamp = local_now.strftime('%Y-%m-%d %H:%M:%S')
-
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -1242,14 +1246,14 @@ def register_user():
     finally:
         conn.close()
 
-# LOGGING IN
+# LOGIN
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
-    # Check if the username and password are valid (you should replace this with your authentication logic)
+    # Check if the username and password are valid (replace this with your authentication logic)
     if is_valid_login(username, password):
         # Check if the user is already logged in
         if session.get('logged_in'):
@@ -1399,15 +1403,22 @@ def revoke_api_key():
         conn.close()
 
 
+@app.route('/show_cookie')
+def show_cookie():
+    print("Received a request. Session Cookie Value:", request.cookies.get('session'))
+    return 'OK'
+
 
 @app.before_request
 def before_request():
     # Check if the user is logged in
     g.logged_in = session.get('logged_in', False)
 
+    session.permanent = True
+
     # If logged in, set the user_id and is_admin attributes in the 'g' object
     if g.logged_in:
-        g.user_id = get_user_id(session.get('username'))
+        g.user_id = get_user_id(session.get('username')) # this gets the user ID from
         g.is_admin = check_user_admin_status(g.user_id)
     else:
         g.user_id = None

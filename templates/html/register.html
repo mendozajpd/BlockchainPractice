@@ -26,12 +26,12 @@
             </ul>
         </nav>
         <div class="container">
-            <form action="/create_user" method="POST" id="userForm">
+            <form action="/register" method="POST" id="userForm">
                 <p>Start for free</p>
                 <h1>Create new account<span>.</span></h1>
                     <input type="text" name="username" placeholder="Username" required autocomplete="off">
-                    <input type="password" name="text" placeholder="Password" required autocomplete="off">
-                    <input type="password-re-enter" name="text" placeholder="Re-Password" required autocomplete="off">
+                    <input type="text" name="password" placeholder="Password" required autocomplete="off">
+                    <input type="password-re-enter" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
                 <button type="button" onclick="submitForm()">Register</button>
             </form>
         </div>
@@ -42,7 +42,36 @@
     <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
     <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
     <script src="{{ url_for('static', filename='js/particle.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/registerjs') }}"></script>
+<!--    <script src="{{ url_for('static', filename='js/registerjs') }}"></script>-->
+<script>
+    function submitForm() {
+        let form = document.getElementById("userForm");
+        let formData = new FormData(form);
+
+        let password = formData.get('password');
+        let confirmPassword = formData.get('password-2');
+
+        if(password === confirmPassword){
+        fetch('/create_user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(Object.fromEntries(formData)),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Registered Successfully!');
+            form.reset();
+console.log(data);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            // Handle errors
+        });
+    }
+}
+</script>
 </body>
 
 </html>

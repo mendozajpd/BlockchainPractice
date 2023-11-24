@@ -2,9 +2,9 @@ import argparse
 import cmd2
 import requests
 from cmd2 import Cmd2ArgumentParser
-from requests import RequestException
 import json
 import argcomplete
+from flask import request
 
 
 class BlockchainCmd(cmd2.Cmd):
@@ -102,6 +102,9 @@ class BlockchainCmd(cmd2.Cmd):
     # Generate API Key
     generate_key_parser = Cmd2ArgumentParser()
     generate_key_parser.add_argument('-n', '--api_name')
+
+    # Display API Keys
+    display_api_keys_parser = Cmd2ArgumentParser()
 
     # Show
     show_parser = Cmd2ArgumentParser()
@@ -732,6 +735,19 @@ class BlockchainCmd(cmd2.Cmd):
         print("Key: ", self.api_key)
         print()
 
+    @cmd2.with_argparser(address_parser)
+    def do_show_session(self, args):
+        print()
+        """
+        Shows the session
+
+        Usage:
+        show_session
+        """
+        print("Session: ", self.session_cookie)
+        print()
+
+
     # USER
     @cmd2.with_argparser(create_user_parser)
     def do_create_user(self, args):
@@ -799,6 +815,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(f'Error: Failed to register user. - Check your command - Try \"<command> -h\" for more info {e}')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(login_parser)
@@ -818,26 +835,36 @@ class BlockchainCmd(cmd2.Cmd):
 
         headers = {
             'Content-Type': 'application/json',
-            'Cookie' : self.session_cookie
+            'Cookie': self.session_cookie
         }
 
         try:
             response = requests.post(url, headers=headers, data=payload)
             response.raise_for_status()
 
-            # Check if the login was successful based on the response content
+            # Extract the session value from the Set-Cookie header
+            set_cookie_header = response.headers.get('Set-Cookie')
+            session_value = None
+
+            if set_cookie_header:
+                # Parse the Set-Cookie header to extract the session value
+                cookies = [cookie.strip() for cookie in set_cookie_header.split(';')]
+                for cookie in cookies:
+                    if cookie.startswith('session='):
+                        session_value = cookie.split('=')[1]
+                        break
+
+            self.session_cookie = "session=" + session_value
+
             if "Login successful" in response.text:
-                # Set the API key after successful login
-                self.api_key = response.json().get('api_key', '')
-                self.session_cookie = 'session=eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoienhjIn0.ZV-QGw.3xmpDwjHSZlw9f_93rQsnoOxe4U'
                 print("Login successful.")
             else:
                 print("Login failed. Please check your username and password.")
-
-            print()
+                print()
 
         except requests.RequestException as e:
-            print(f'Error: Failed to log in. - Check your command - Try \"<command> -h\" for more info {e}')
+            print(f'Error: Failed to log in. - Check your command - Try \"<command> -h\" for more info')
+            print(response.text)
             print()
 
     @cmd2.with_argparser(logout_parser)
@@ -854,7 +881,6 @@ class BlockchainCmd(cmd2.Cmd):
         headers = {
             'Cookie' : self.session_cookie
         }
-        print(f"API Key used in request: {self.api_key}")
 
         try:
             response = requests.post(url, headers=headers, data=payload)
@@ -864,7 +890,8 @@ class BlockchainCmd(cmd2.Cmd):
             print()
 
         except requests.RequestException as e:
-            print(f'Error: Failed to log out. - Check your command - Try \"<command> -h\" for more info {e}')
+            print(f'Error: Failed to log out. - Check your command - Try \"<command> -h\" for more info.')
+            print(response.text)
             print()
 
     #API
@@ -917,6 +944,7 @@ class BlockchainCmd(cmd2.Cmd):
         print()
         return api_key
 
+
     available_commands = [
         "create \t\t\tCreate a new blockchain with the specified name, type, and password.",
         "delete_blockchain \t\tDelete an existing blockchain by providing its name.",
@@ -950,32 +978,10 @@ class BlockchainCmd(cmd2.Cmd):
             for cmd in self.available_commands:
                 print(f"- {cmd}")
 
-    def send_request(self, url, data=None, params=None):
-        print()
-        headers = {'apikey': self.api_key}
-        try:
-            if data:
-                response = requests.post(url, json=data, headers=headers)
-            elif params:
-                response = requests.get(url, params=params, headers=headers)
-            else:
-                response = requests.delete(url, json=data, headers=headers)
-
-            try:
-                print(response.json())
-                print()
-            except ValueError:
-                # If the response is not in JSON format, print the raw content
-                print(response.content.decode('utf-8'))
-                print()
-
-        except requests.ConnectionError:
-            print('Error: Could not connect to the Flask server.')
-            print()
 
 
 if __name__ == '__main__':
-    api_key = 'doesntmatter'
+    api_key = ''
     api_address = "https://127.0.0.1:5000"
     print("- Blockchain Security System -")
     print("Address: ", api_address)
