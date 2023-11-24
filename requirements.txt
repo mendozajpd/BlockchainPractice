@@ -18,3 +18,5 @@ typing_extensions
 watchdog
 Werkzeug
 zipp
+cryptography
+pyopenssl

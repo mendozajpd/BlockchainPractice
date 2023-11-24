@@ -1403,12 +1403,6 @@ def revoke_api_key():
         conn.close()
 
 
-@app.route('/show_cookie')
-def show_cookie():
-    print("Received a request. Session Cookie Value:", request.cookies.get('session'))
-    return 'OK'
-
-
 @app.before_request
 def before_request():
     # Check if the user is logged in

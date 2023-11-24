@@ -944,7 +944,6 @@ class BlockchainCmd(cmd2.Cmd):
         print()
         return api_key
 
-
     available_commands = [
         "create \t\t\tCreate a new blockchain with the specified name, type, and password.",
         "delete_blockchain \t\tDelete an existing blockchain by providing its name.",
@@ -961,6 +960,23 @@ class BlockchainCmd(cmd2.Cmd):
         "show_add \t\t\tShow the current address of the API.",
         "show_key \t\t\tShow the current key of the API.",
         "quit \t\t\t\tExit the application.",
+        "apikey_gen \t\t\tGenerate a new API key with a specified name.",
+        "create_user \t\t\tCreate a new user with the specified username, password, and admin status.",
+        "register \t\t\tRegister a new user with the specified username and password.",
+        "login \t\t\tLog in with the provided username and password.",
+        "logout \t\t\tLog out the user with the provided username and password.",
+        "show_session \t\t\tShow the current session information.",
+        "generate_key \t\t\tGenerate a new API key with a specified name.",
+        "update_by_id_hash \t\tUpdate a block in the blockchain by ID as Hash.",
+        "update_as_hash \t\tUpdate a block in the blockchain by criteria as Hash.",
+        "delete_reference_by_criteria \tDelete a reference in the blockchain by criteria.",
+        "list_blockchains \t\tList all blockchains.",
+        "list_references \t\tList references for a specific blockchain by providing its name.",
+        "set_add \t\t\tChange the address of the API.",
+        "set_key \t\t\tChange the key of the API.",
+        "show_add \t\t\tShow the current address of the API.",
+        "show_key \t\t\tShow the current key of the API.",
+        "show_session \t\t\tShow the current session.",
         "",
         "Additionally, you can type \"<command> -h\" for more details on the command.",
     ]
