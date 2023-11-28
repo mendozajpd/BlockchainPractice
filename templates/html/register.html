@@ -13,11 +13,14 @@
 <body>
     <header>
         <nav>
-            <div class="logo">
+            <div class="logo" onclick="window.location.href='{{ url_for('web_index')}}'">
                 <img src="{{ url_for('static', filename='img/logo.png') }}">
                 <h1>BSS</h1>
             </div>
-            <ul>
+
+            <div class="burger-menu"></div>
+
+            <ul class="web-nav">
                 <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
                 <!-- Add Flask Navigation to Documentation Page -->
                 <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
@@ -30,14 +33,28 @@
                 <p>Start for free</p>
                 <h1>Create new account<span>.</span></h1>
                     <input type="text" name="username" placeholder="Username" required autocomplete="off">
-                    <input type="text" name="password" placeholder="Password" required autocomplete="off">
-                    <input type="password-re-enter" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
+                    <input type="password" name="password" placeholder="Password" required autocomplete="off">
+                    <input type="password" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
                 <button type="button" onclick="submitForm()">Register</button>
             </form>
         </div>
         <!-- particles.js container -->
         <div id="particles-js"></div> <!-- stats - count particles -->
+
+        <div class="mobile-nav">
+            <div class="close-button">
+                <p>+</p>
+            </div>
+            <ul>
+                <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
+                <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li>Register</li>
+            </ul>
+        </div>
+
     </header>
+
 
     <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
     <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
@@ -61,16 +78,30 @@
         })
         .then(response => response.json())
         .then(data => {
-            alert('Registered Successfully!');
+            alert('Registration Successful: Congratulations! You have successfully registered.');
             form.reset();
-console.log(data);
         })
         .catch((error) => {
             console.error('Error:', error);
-            // Handle errors
         });
+    }else {
+        alert('Password Mismatch: The passwords entered do not match. Please make sure that the password and the password confirmation match. Ensure that there are no typos and that both entries are identical.');
     }
 }
+
+const burgerMenu = document.querySelector('.burger-menu');
+        const mobileNav = document.querySelector('.mobile-nav');
+        const closeButton = document.querySelector('.close-button');
+
+        burgerMenu.addEventListener('click', function () {
+           mobileNav.classList.add('appear');
+           document.body.style.overflowY = 'hidden';
+          });
+
+        closeButton.addEventListener('click', function () {
+            mobileNav.classList.remove('appear');
+            document.body.style.overflowY = '';
+          });
 </script>
 </body>
 

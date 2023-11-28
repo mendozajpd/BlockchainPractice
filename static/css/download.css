@@ -188,3 +188,178 @@ i {
     position: relative;
 }
 
+@media (max-width: 780px) {
+    nav {
+        padding: 1rem 3%;
+    }
+    header {
+        padding: 1rem 0;
+    }
+   .container form {
+    width: 100%;
+   }
+    .mobile-nav {
+        min-height: 100vh;
+        height: 100%;
+        width: 0;
+        display: none;
+        color: white;
+        position: absolute;
+        top: 0;
+        right: 0;
+        align-items: center;
+        justify-content: flex-start;
+        background-color: #0d0d23;
+        z-index: 100;
+        flex-direction: column;
+        padding: 2rem 20px;
+    }
+    .mobile-nav ul {
+        list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        font-weight: 400;
+        position: relative;
+    }
+    .mobile-nav ul li {
+        position: relative;
+        padding-bottom: 5px;
+        cursor: pointer;
+    }
+    
+    .mobile-nav li::after {
+        width: 0;
+        height: 1px;
+        background-color: #00ccff;
+        box-shadow: 1px 1px 10px rgb(0, 204, 255);
+        bottom: 0;
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        transition: width 0.3s ease;
+    }
+    
+    .mobile-nav li:hover::after {
+        width: 100%;
+    }
+    .mobile-nav .close-button {
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        font-size: 3rem;
+        font-family: sans-serif;
+        font-weight: 100;
+        transform: rotate(45deg);
+        background-color: rgba(149, 149, 149, 0.323);
+        padding: 0 13.5px;
+        border-radius: 100%;
+        margin-bottom: 4rem;
+        cursor: pointer;
+        transition: background-color .3s ease;
+    }
+    .mobile-nav .close-button:hover {
+        background-color: rgba(149, 149, 149, 0.716);
+    }
+    .burger-menu {
+        width: 25px;
+        height: 1.8px;
+        background-color: #fff;
+        border-radius: 5px;
+        position: relative;
+        cursor: pointer;
+    }
+    .burger-menu::before {
+        width: 20px;
+        height: 1.8px;
+        background-color: #ffffff;
+        border-radius: 5px;
+        content: "";
+        position: absolute;
+        top: -5px;
+        right: 0;
+    }
+    .burger-menu::after {
+        width: 20px;
+        height: 1.8px;
+        background-color: #ffffff;
+        border-radius: 5px;
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        right: 0;
+    }
+    .web-nav {
+        display: none;
+    }
+    header {
+        height: 100%;
+    }
+    .appear {
+        width: 100%;
+        display: flex;
+    }
+    header .container {
+        padding: 0;
+        align-items: start;
+        justify-content: start;
+    }
+    .container .download-container {
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+    }
+
+    .container .animation-container {
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+    }
+    
+}
+
+@media (max-width: 550px) {
+    nav {
+        padding: 5px 10px;
+    }
+    nav .logo {
+        width: 70px;
+    }
+    header {
+        gap: 1rem;
+        overflow: auto;
+        padding: 0;
+    }
+    header .container {
+        padding: 2rem .5rem;
+        flex-direction: column;
+        align-items: start;
+        justify-content: start;
+    }
+    .container .download-container {
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        height: 200px;
+    }
+    .download-container .download-text {
+        text-align: center;
+    }
+    .container .animation-container {
+        width: 100%;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        height: 20%;
+    }
+    .animation-container figure {
+        display: none;
+    }
+}

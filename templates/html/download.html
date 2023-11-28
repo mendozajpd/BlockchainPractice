@@ -17,7 +17,10 @@
                 <img src="{{ url_for('static', filename='img/logo.png') }}">
                 <h1>BSS</h1>
             </div>
-            <ul>
+
+            <div class="burger-menu"></div>
+
+            <ul class="web-nav">
                 <li  onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
                 <!-- Add Flask Navigation to Documentation Page -->
                 <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
@@ -43,7 +46,17 @@
 <!-- particles.js container -->
 <div id="particles-js"></div>
 
-
+<div class="mobile-nav">
+    <div class="close-button">
+        <p>+</p>
+    </div>
+    <ul>
+        <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
+        <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+        <li>Download</li>
+        <li onclick="window.location.href='{{ url_for('web_register') }}'">Register</li>
+    </ul>
+</div>
 
 <!-- stats.js lib -->
 <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> 
@@ -78,6 +91,20 @@ function downloadImage() {
         document.body.removeChild(link);
     }, 100);
 }
+
+const burgerMenu = document.querySelector('.burger-menu');
+        const mobileNav = document.querySelector('.mobile-nav');
+        const closeButton = document.querySelector('.close-button');
+
+        burgerMenu.addEventListener('click', function () {
+           mobileNav.classList.add('appear');
+           document.body.style.overflowY = 'hidden';
+          });
+
+        closeButton.addEventListener('click', function () {
+            mobileNav.classList.remove('appear');
+            document.body.style.overflowY = '';
+          });
 </script>
 <!-- End of the internal script for the download function -->
 </body>

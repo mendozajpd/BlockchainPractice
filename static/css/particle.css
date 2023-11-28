@@ -10,7 +10,7 @@ canvas {
     position: absolute;
     width: 100%;
     height: inherit;
-    min-height: 200vh;
+    min-height: 100vh;
     background-color: #0d0d23;
     background-image: url("");
     background-repeat: no-repeat;
