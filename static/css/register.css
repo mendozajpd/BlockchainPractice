@@ -162,6 +162,28 @@ form span {
 .mobile-nav {
     display: none;
 }
+form .password-requirements {
+    text-align: left;
+    width: 100%;
+    padding: 0 1%;
+    margin-top: -15px;
+    max-width: 500px;
+    display: none;
+}
+.error-input {
+    border: 1px solid red;
+    background-color: #ff00001a;
+}
+.error-input:focus {
+    border: 1px solid red;
+}
+
+form .password-requirements p{
+    color: #ff0909;
+    font-size: .7rem;
+    text-transform: initial;
+    font-weight: 600;
+}
 
 @media (max-width: 780px) {
     nav {

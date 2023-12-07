@@ -32,12 +32,19 @@
             <form action="/register" method="POST" id="userForm">
                 <p>Start for free</p>
                 <h1>Create new account<span>.</span></h1>
-                    <input type="text" name="username" placeholder="Username" required autocomplete="off">
-                    <input type="password" name="password" placeholder="Password" required autocomplete="off">
-                    <input type="password" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
+                    <input type="text" name="username" class="username" placeholder="Username" autocomplete="off" required>
+                    <input type="password" class="password" name="password" placeholder="Password" required autocomplete="off">
+                    <div class="password-requirements weak-password">
+                        <p>Weak Password: Enter a number or symbol, and at least 6 characters.</p>
+                    </div>
+                    <input type="password" class="password-2" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
+                    <div class="password-requirements mismatch">
+                        <p>Password Mismatch: The passwords entered do not match.</p>
+                    </div>
                 <button type="button" onclick="submitForm()">Register</button>
             </form>
         </div>
+
         <!-- particles.js container -->
         <div id="particles-js"></div> <!-- stats - count particles -->
 
@@ -62,31 +69,49 @@
 <!--    <script src="{{ url_for('static', filename='js/registerjs') }}"></script>-->
 <script>
     function submitForm() {
+
         let form = document.getElementById("userForm");
         let formData = new FormData(form);
 
+        let username = document.querySelector('.username');
         let password = formData.get('password');
         let confirmPassword = formData.get('password-2');
+        let strongPassword = false;
 
-        if(password === confirmPassword){
-        fetch('/create_user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(Object.fromEntries(formData)),
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert('Registration Successful: Congratulations! You have successfully registered.');
-            form.reset();
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-        });
-    }else {
-        alert('Password Mismatch: The passwords entered do not match. Please make sure that the password and the password confirmation match. Ensure that there are no typos and that both entries are identical.');
-    }
+        function isStrongPassword(password) {
+            // Password must contain at least one number or symbol and be at least 6 characters long
+            return /^(?=.*[\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{6,}$/.test(password);
+        }
+
+        if(password === confirmPassword && password !== '' && isStrongPassword(password)){
+            fetch('/create_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData)),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Registration Successful: Congratulations! You have successfully registered.');
+                form.reset();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }else if(password !== confirmPassword){
+        
+            document.querySelector('.password-2').classList.add('error-input');
+            document.querySelector('.mismatch').style.display ="block";
+
+        }else if(password === '' && username.value === '' ){
+            alert("All Fields Required: Please enter a username and password.");
+        }else if(password === '' ){
+            alert("Password Required: Please enter a password.");
+        } else {
+            document.querySelector('.password').classList.add('error-input');
+            document.querySelector('.weak-password').style.display ="block";
+        }
 }
 
 const burgerMenu = document.querySelector('.burger-menu');
