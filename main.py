@@ -10,8 +10,6 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 
-# Database config
-DATABASE = 'BSS.db'
 app.secret_key = 'testsecretkey'
 app.permanent_session_lifetime = timedelta(days=365)
 
@@ -21,6 +19,10 @@ current_session = ""
 utc_now = datetime.utcnow()
 local_now = utc_now + timedelta(hours=8)
 formatted_timestamp = local_now.strftime('%Y-%m-%d %H:%M:%S')
+search_result = []
+
+# Database config
+DATABASE = 'BSS.db'
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -243,12 +245,12 @@ def get_latest_hash_by_max_id(blockchain_name):
 
 
 # Delete Blockchain
-def delete_blockchain(blockchain_name):
+def delete_blockchain(blockchain_name, blockchain_orig_name):
     conn, cursor = open_database(DATABASE)
 
     try:
         # Check if the blockchain exists
-        cursor.execute('SELECT 1 FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
+        cursor.execute('SELECT 1 FROM blockchains WHERE blockchain_name = ?', (blockchain_orig_name,))
         blockchain_exists = cursor.fetchone()
 
         if not blockchain_exists:
@@ -258,10 +260,10 @@ def delete_blockchain(blockchain_name):
         cursor.execute(f'DROP TABLE IF EXISTS {blockchain_name}')
 
         # Delete the blockchain entry from the blockchains table
-        cursor.execute('DELETE FROM blockchains WHERE blockchain_name = ?', (blockchain_name,))
+        cursor.execute('DELETE FROM blockchains WHERE blockchain_name = ?', (blockchain_orig_name,))
 
         conn.commit()
-        return jsonify({'message': f'Blockchain "{blockchain_name}" deleted successfully'}), 200
+        return jsonify({'message': f'Blockchain "{blockchain_orig_name}" deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': f'Failed to delete blockchain: {str(e)}'}), 500
     finally:
@@ -271,6 +273,7 @@ def delete_blockchain(blockchain_name):
 def search_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database(DATABASE)
     try:
+        search_result.clear()
         cursor.execute(f'''
             SELECT data
             FROM {blockchain_name}
@@ -278,6 +281,8 @@ def search_blockchain(blockchain_name, criteria, value):
         ''', (value,))
         result = cursor.fetchall()
         if result:
+            # Extend the global search_result list
+            search_result.extend([data[0] for data in result])
             return [data[0] for data in result]
         else:
             return None
@@ -286,7 +291,6 @@ def search_blockchain(blockchain_name, criteria, value):
     finally:
         conn.close()
 
-# IF DATA EXISTS IN BLOCKCHAIN
 def is_data_equal_in_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database(DATABASE)
     try:
@@ -316,7 +320,6 @@ def user_owns_blockchain(user_id, blockchain_name):
     finally:
         conn.close()
 
-# LOGGING IN
 def is_valid_login(username, password):
     # Query your database to check if the provided username and password are valid
     conn, cursor = open_database(DATABASE)
@@ -466,7 +469,7 @@ def create_blockchain():
 
     try:
         # Check if the user already has a blockchain with the same name
-        cursor.execute('SELECT COUNT(*) FROM blockchains WHERE user_id = ? AND blockchain_name = ?', (user_id, blockchain_name,))
+        cursor.execute('SELECT COUNT(*) FROM blockchains WHERE user_id = ? AND blockchain_name = ?', (user_id, blockchain_orig_name,))
         if cursor.fetchone()[0] > 0:
             return jsonify({'error': f'User already has a blockchain named "{blockchain_orig_name}"'}), 400
 
@@ -508,13 +511,13 @@ def delete_blockchain_endpoint():
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+        return jsonify({'error': 'User does not own or has already deleted the specified blockchain'}), 403
 
 
     if not blockchain_name:
         return jsonify({'error': 'Blockchain name is required'}), 400
 
-    return delete_blockchain(blockchain_name)
+    return delete_blockchain(blockchain_name, blockchain_orig_name)
 
 
 # Store Hashed Data in Blockchain
@@ -1046,8 +1049,7 @@ def update_block_by_criteria_as_hash():
     finally:
         conn.close()
 
-# Search in Blockchain
-@app.route('/search_in_blockchain', methods=['GET'])
+@app.route('/search_in_blockchain', methods=['POST'])
 def search_blockchain_endpoint():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
@@ -1064,22 +1066,44 @@ def search_blockchain_endpoint():
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
         return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
-    #API CHECK
+    # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
 
-
     if not blockchain_name or not criteria or not value:
         return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
 
     result = search_blockchain(blockchain_name, criteria, value)
+    update_last_used_timestamp()
 
     if result is not None:
         return jsonify({'result': result}), 200
     else:
         return jsonify({'message': 'No matching data found in the blockchain'}), 404
+
+# SEARCH RESULT
+@app.route('/get_search_result', methods=['GET'])
+def get_search_result():
+    return jsonify({'result': search_result})
+
+# GET ELEMENT FROM RESULT
+@app.route('/get_element_by_index', methods=['GET'])
+def get_element_by_index():
+    global search_result  # Use the global search_result variable
+
+    data = request.get_json()
+    index = data.get('index')
+
+    try:
+        index = int(index)
+        if 0 <= index < len(search_result):
+            return jsonify({'element': search_result[index]})
+        else:
+            return jsonify({'error': 'Index out of range'}), 400
+    except ValueError:
+        return jsonify({'error': 'Invalid index'}), 400
 
 # List Blockchains
 @app.route('/list_blockchains', methods=['GET'])
@@ -1163,7 +1187,6 @@ def verify_blockchain():
 
     # Check if the user is an admin
     if g.is_admin:
-        # Continue with blockchain verification
         #API CHECK
         validation_result = validate_api_key()
 
@@ -1193,6 +1216,10 @@ def create_user():
     password = data['password']
     is_admin = data.get('is_admin', False)  # Default to False if not provided
 
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
     # Check if the username already exists
     if is_data_equal_in_blockchain('users', 'username', username):
         return jsonify({'error': f'Username "{username}" already exists'}), 400
@@ -1211,7 +1238,10 @@ def create_user():
 
         conn.commit()
 
-        return jsonify({'message': f'User "{username}" created successfully'}), 201
+        if is_admin:
+            return jsonify({'message': f'Admin "{username}" created successfully'}), 201
+        else:
+            return jsonify({'message': f'User "{username}" created successfully'}), 201
     except Exception as e:
         return jsonify({'error': f'Failed to create user: {str(e)}'}), 500
     finally:
@@ -1285,7 +1315,7 @@ def logout():
 def generate_api_key():
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
 
     # Generate a random API key (UUID)
     api_key = str(uuid.uuid4())
@@ -1325,7 +1355,7 @@ def generate_api_key():
 def display_api_keys():
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
 
     # Get the user ID based on the logged-in username
     username = session.get('username')
@@ -1357,7 +1387,7 @@ def display_api_keys():
 def revoke_api_key():
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
 
     # Get the user ID based on the logged-in username
     username = session.get('username')
@@ -1436,7 +1466,9 @@ def web_download():
 def web_register    ():
     return render_template('html/register.html')
 
-
+@app.route('/secure-endpoint', methods=['GET'])
+def secure_endpoint():
+    return render_template('html/secure_endpoint.html')
 
 if __name__ == '__main__':
     init_db()
