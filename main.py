@@ -404,6 +404,108 @@ def validate_api_key():
     else:
         return None
 
+# User Handling Related
+# Function to get user's current password from the database
+def get_user_password(user_id):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Retrieve the user's current hashed password from the 'users' table
+        cursor.execute('SELECT password FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+
+        # Return the hashed password if found, otherwise return None
+        return result[0] if result else None
+    except Exception as e:
+        print(f'Error getting user password: {str(e)}')
+        return None
+    finally:
+        conn.close()
+
+# Function to check if a password meets complexity requirements
+def is_valid_password(password):
+    # Check if the password has at least 6 characters
+    if len(password) < 6:
+        return False
+
+    # Check if the password contains a number or a symbol
+    has_digit_or_symbol = any(char.isdigit() or not char.isalnum() for char in password)
+
+    return has_digit_or_symbol
+
+# Function to change username in the database
+def change_username(user_id, new_username):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Update the user's username in the 'users' table
+        cursor.execute('UPDATE users SET username = ? WHERE user_id = ?', (new_username, user_id))
+        conn.commit()
+    except Exception as e:
+        print(f'Error changing username: {str(e)}')
+    finally:
+        conn.close()
+
+# Function to change password in the database
+def change_password(user_id, new_password):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Hash the new password before storing it in the database
+        hashed_password = hash_data(new_password)
+
+        # Update the user's password in the 'users' table
+        cursor.execute('UPDATE users SET password = ? WHERE user_id = ?', (hashed_password, user_id))
+        conn.commit()
+    except Exception as e:
+        print(f'Error changing password: {str(e)}')
+    finally:
+        conn.close()
+
+# Function to delete user account along with associated data
+def delete_user_account(user_id):
+    conn, cursor = open_database('BSS.db')  # Replace with your actual database name
+
+    try:
+        # Get the list of blockchains owned by the user
+        cursor.execute('SELECT blockchain_name FROM blockchains WHERE user_id = ?', (user_id,))
+        blockchains = cursor.fetchall()
+
+        # Drop all blockchains owned by the user
+        for blockchain in blockchains:
+            table_name = f'{blockchain[0]}_{user_id}'
+            cursor.execute(f'DROP TABLE IF EXISTS {table_name}')
+
+        # Delete blockchains entries from the 'blockchains' table
+        cursor.execute('DELETE FROM blockchains WHERE user_id = ?', (user_id,))
+
+        # Delete API keys associated with the user
+        cursor.execute('DELETE FROM api_keys WHERE user_id = ?', (user_id,))
+
+        # Delete the user entry from the 'users' table
+        cursor.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
+
+        conn.commit()
+    except Exception as e:
+        print(f'Error deleting user account: {str(e)}')
+    finally:
+        conn.close()
+
+def is_admin_user(user_id):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the user is an admin
+        cursor.execute('SELECT is_admin FROM users WHERE user_id = ?', (user_id,))
+        is_admin = cursor.fetchone()
+
+        return True if is_admin and is_admin[0] == 1 else False
+    except Exception as e:
+        print(f'Error checking if user is an admin: {str(e)}')
+        return False
+    finally:
+        conn.close()
+
 # Function to update the last_used timestamp of an API key
 def update_last_used_timestamp():
     conn, cursor = open_database(DATABASE)
@@ -1214,7 +1316,7 @@ def create_user():
     data = request.get_json()
     username = data['username']
     password = data['password']
-    is_admin = data.get('is_admin', False)  # Default to False if not provided
+    is_admin = data.get('is_admin', 0)  # Default to False if not provided
 
     # Check if the requester is logged in and is an admin
     if not g.logged_in or not g.is_admin:
@@ -1232,9 +1334,9 @@ def create_user():
     try:
         # Insert user data into the 'users' table
         cursor.execute('''
-            INSERT INTO users (username, password, is_admin, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (username, hashed_password, int(is_admin),formatted_timestamp,formatted_timestamp))
+            INSERT INTO users (username, password, is_admin, created_at)
+            VALUES (?, ?, ?, ?)
+        ''', (username, hashed_password, int(is_admin),formatted_timestamp))
 
         conn.commit()
 
@@ -1257,6 +1359,10 @@ def register_user():
     # Check if the username is already taken
     if is_username_taken(username):
         return jsonify({'error': 'Username is already taken'}), 400
+
+    # Check if the new_password meets the complexity requirements
+    if not is_valid_password(new_password):
+        return jsonify({'error': 'Invalid password. It must have at least 6 characters and contain a number or a symbol'}), 400
 
     # Hash the password before storing it
     hashed_password = hash_data(password)
@@ -1309,6 +1415,227 @@ def logout():
         return jsonify({'message': 'Logout successful'}), 200
     else:
         return jsonify({'error': 'Not logged in'}), 401
+
+# Endpoint for changing username
+@app.route('/change_username', methods=['POST'])
+def change_name():
+    data = request.get_json()
+    new_username = data.get('new_username')
+
+    # Check if the user is logged in
+    if not session.get('logged_in'):
+        return jsonify({'error': 'User is not logged in'}), 401
+
+    # Check if the new_username is provided
+    if not new_username:
+        return jsonify({'error': 'New username is required'}), 400
+
+    # Check if the new_username is the same as the current username
+    current_username = session.get('username')
+    if new_username == current_username:
+        return jsonify({'error': 'New username cannot be the same as the current username'}), 400
+
+    # Check if the new_username already exists
+    if is_username_taken(new_username):
+        return jsonify({'error': 'Username already exists'}), 400
+
+
+    # Call the function to change the username in the database
+    change_username(g.user_id, new_username)
+    session['username'] = new_username
+
+    return jsonify({'message': 'Username changed successfully'}), 200
+
+@app.route('/change_password', methods=['POST'])
+def change_password_endpoint():
+    data = request.get_json()
+    new_password = data.get('new_password')
+
+    # Check if the user is logged in
+    if not session.get('logged_in'):
+        return jsonify({'error': 'User is not logged in'}), 401
+
+    # Check if the new_password is provided
+    if not new_password:
+        return jsonify({'error': 'New password is required'}), 400
+
+    # Check if the new_password is the same as the old password
+    old_password = get_user_password(g.user_id)
+    if new_password == old_password:
+        return jsonify({'error': 'New password must be different from the old password'}), 400
+
+
+    # Check if the new_password meets the complexity requirements
+    if not is_valid_password(new_password):
+        return jsonify({'error': 'Invalid password. It must have at least 6 characters and contain a number or a symbol'}), 400
+
+    # Call the function to change the password in the database
+    change_password(g.user_id, new_password)
+
+    return jsonify({'message': 'Password changed successfully'}), 200
+
+# USER
+# Endpoint to delete user account
+@app.route('/delete_account', methods=['DELETE'])
+def delete_account():
+    # Check if the user is logged in
+    if not session.get('logged_in'):
+        return jsonify({'error': 'User must log in to delete their account'}), 401
+
+    # Get the user ID based on the logged-in username
+    username = session.get('username')
+    user_id = get_user_id(username)  # Replace with your actual function to get user ID
+    is_admin = g.is_admin
+
+    if user_id is None:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Delete user account and associated data
+    delete_user_account(user_id)
+
+    # Clear the session (logout)
+    session.clear()
+
+    if is_admin:
+        return jsonify({'message': 'Admin account deleted successfully. You have been logged out.'}), 200
+    else:
+        return jsonify({'message': 'User account deleted successfully. You have been logged out.'}), 200
+
+# ADMIN
+# Admin endpoint to change username of a specific user
+@app.route('/admin_change_username', methods=['POST'])
+def admin_change_username():
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+    new_username = data.get('new_username')
+
+    # Check if user_id and new_username are provided
+    if not user_id or not new_username:
+        return jsonify({'error': 'User ID and new username are required'}), 400
+
+    # Check if the new_username already exists
+    if is_username_taken(new_username):
+        return jsonify({'error': 'Username already exists'}), 400
+
+    # Call the function to change the username in the database
+    change_username(user_id, new_username)
+
+    return jsonify({'message': f'Username for user ID {user_id} changed successfully'}), 200
+
+# Admin endpoint to change password of a specific user
+@app.route('/admin_change_password', methods=['POST'])
+def admin_change_password():
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+    new_password = data.get('new_password')
+
+    # Check if user_id and new_password are provided
+    if not user_id or not new_password:
+        return jsonify({'error': 'User ID and new password are required'}), 400
+
+    # Check if the new_password meets the complexity requirements
+    if not is_valid_password(new_password):
+        return jsonify({'error': 'Invalid password. It must have at least 6 characters and contain a number or a symbol'}), 400
+
+    # Call the function to change the password in the database
+    change_password(user_id, new_password)
+
+    return jsonify({'message': f'Password for user ID {user_id} changed successfully'}), 200
+
+# List Users
+@app.route('/admin_list_users', methods=['GET'])
+def list_users():
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    conn, cursor = open_database(DATABASE)
+    try:
+        # Fetch user data
+        cursor.execute('SELECT user_id, username FROM users')
+        users = [{'user_id': row[0], 'username': row[1]} for row in cursor.fetchall()]
+        return jsonify({'users': users}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch users: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+# Admin Endpoint to delete user account by user_id
+@app.route('/admin_delete_account', methods=['DELETE'])
+def admin_delete_account():
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    data = request.get_json()
+    user_id_to_delete = data.get('user_id')
+
+    # Check if user_id is provided
+    if not user_id_to_delete:
+        return jsonify({'error': 'User ID is required'}), 400
+
+    # Get the user ID based on the logged-in username
+    username = session.get('username')
+    current_user_id = get_user_id(username)  # Replace with your actual function to get user ID
+
+    # Check if the current admin is trying to delete their own account
+    if current_user_id == user_id_to_delete:
+        session.clear()
+        delete_user_account(current_user_id)
+        return jsonify({'message': 'Admin account deleted successfully. You have been logged out.'}), 200
+
+    # Check if the user to be deleted is also an admin
+    if is_admin_user(user_id_to_delete):
+        return jsonify({'error': 'Admin accounts cannot be deleted by other admins'}), 403
+
+    # Delete the specified user account and associated data
+    delete_user_account(user_id_to_delete)
+
+    return jsonify({'message': f'User account with ID {user_id_to_delete} deleted successfully'}), 200
+
+
+# Admin Endpoint to list blockchains of a specific user
+@app.route('/admin_list_blockchains_of_user', methods=['GET'])
+def admin_list_blockchains_of_user():
+    # Check if the requester is logged in and is an admin
+    if not g.logged_in or not g.is_admin:
+        return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    # Get user_id from the request
+    data = request.get_json()
+    user_id_to_list = data.get('user_id')
+
+    # Check if user_id is provided
+    if not user_id_to_list:
+        return jsonify({'error': 'User ID is required'}), 400
+
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the specified user exists
+        cursor.execute('SELECT COUNT(*) FROM users WHERE user_id = ?', (user_id_to_list,))
+        user_exists = cursor.fetchone()[0]
+
+        if not user_exists:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Fetch blockchains of the specified user
+        cursor.execute('SELECT blockchain_name FROM blockchains WHERE user_id = ?', (user_id_to_list,))
+        blockchains = [row[0] for row in cursor.fetchall()]
+
+        return jsonify({'blockchains': blockchains}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch blockchains: {str(e)}'}), 500
+    finally:
+        conn.close()
 
 # API
 @app.route('/generate_api_key', methods=['POST'])

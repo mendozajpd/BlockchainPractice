@@ -26,6 +26,7 @@ def return_error(errormsg):
 
 
 class BlockchainCmd(cmd2.Cmd):
+
     def __init__(self, api_key):
         super().__init__()
         self.api_address = ""
@@ -34,6 +35,7 @@ class BlockchainCmd(cmd2.Cmd):
         self.prompt = "> "
         self.session_cookie = ""
         self.set_window_title("Blockchain Security System CLI")
+
 
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
@@ -1051,6 +1053,7 @@ class BlockchainCmd(cmd2.Cmd):
         "show_session \t\t\tShow the current session.",
         "",
         "Additionally, you can type \"<command> -h\" for more details on the command.",
+        ""
     ]
 
     def do_help(self, arg):
@@ -1064,14 +1067,14 @@ class BlockchainCmd(cmd2.Cmd):
         else:
             print("\nAvailable Commands:")
             for cmd in self.available_commands:
-                print(f"- {cmd}")
+                print(f"{cmd}")
 
 
 
 if __name__ == '__main__':
     api_key = ''
     api_address = "https://127.0.0.1:5000"
-    print("- Blockchain Security System -")
+    print("- Blockchain Security System v1.0-")
     print("Address: ", api_address)
     print("Key: ", api_key)
     print()
