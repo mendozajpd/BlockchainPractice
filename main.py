@@ -20,6 +20,7 @@ utc_now = datetime.utcnow()
 local_now = utc_now + timedelta(hours=8)
 formatted_timestamp = local_now.strftime('%Y-%m-%d %H:%M:%S')
 search_result = []
+search_result_elements = []
 
 # Database config
 DATABASE = 'BSS.db'
@@ -275,15 +276,36 @@ def search_blockchain(blockchain_name, criteria, value):
     try:
         search_result.clear()
         cursor.execute(f'''
-            SELECT data
+            SELECT id, data
             FROM {blockchain_name}
             WHERE {criteria} = ? AND reference IS NOT NULL
         ''', (value,))
         result = cursor.fetchall()
         if result:
             # Extend the global search_result list
-            search_result.extend([data[0] for data in result])
-            return [data[0] for data in result]
+            search_result.extend(result)
+            return [{'id': row[0], 'data': row[1]} for row in result]
+        else:
+            return None
+    except Exception as e:
+        return f'Error: {str(e)}'
+    finally:
+        conn.close()
+
+def add_search_results(blockchain_name, criteria, value):
+    conn, cursor = open_database(DATABASE)
+    try:
+        search_result.clear()
+        cursor.execute(f'''
+            SELECT ata
+            FROM {blockchain_name}
+            WHERE {criteria} = ? AND reference IS NOT NULL
+        ''', (value,))
+        result = cursor.fetchall()
+        if result:
+            # Extend the global search_result list
+            search_result.extend(result)
+            return [{'data': row[0]} for row in result]
         else:
             return None
     except Exception as e:
@@ -1158,6 +1180,7 @@ def search_blockchain_endpoint():
     criteria = data['criteria']
     value = data['value']
 
+
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
 
@@ -1177,16 +1200,33 @@ def search_blockchain_endpoint():
     if not blockchain_name or not criteria or not value:
         return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
 
-    result = search_blockchain(blockchain_name, criteria, value)
+    results = search_blockchain(blockchain_name, criteria, value)
     update_last_used_timestamp()
 
-    if result is not None:
-        return jsonify({'result': result}), 200
+    if results is not None:
+        num_results = len(results)
+        max_display = 10
+
+        # Store the results
+        search_result = results
+        search_result_elements = add_search_results(blockchain_name, criteria, value)
+
+
+        # Display the number of results found
+        response = {'message': f'{num_results} matching data found in the blockchain.'}
+
+        # Display the range of results being displayed
+        response['message'] += f' Displaying {min(max_display, num_results)} out of {num_results}.'
+
+        # Display the first 10 results ordered by ID
+        response['results'] = results[:max_display]
+
+        return jsonify(response), 200
     else:
         return jsonify({'message': 'No matching data found in the blockchain'}), 404
 
 # SEARCH RESULT
-@app.route('/get_search_result', methods=['GET'])
+@app.route('/display_search_results', methods=['GET'])
 def get_search_result():
     return jsonify({'result': search_result})
 
@@ -1201,7 +1241,7 @@ def get_element_by_index():
     try:
         index = int(index)
         if 0 <= index < len(search_result):
-            return jsonify({'element': search_result[index]})
+            return jsonify({'result': search_result_elements[index]})
         else:
             return jsonify({'error': 'Index out of range'}), 400
     except ValueError:

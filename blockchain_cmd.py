@@ -18,10 +18,19 @@ def return_result(msg):
     response_txt = json_response.get('result', '')
     return response_txt
 
+def return_results(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('results', '')
+    return response_txt
 
 def return_error(errormsg):
-    json_response = json.loads(errormsg)
-    response_txt = json_response.get('error', '')
+    try:
+        json_response = json.loads(errormsg)
+        response_txt = json_response.get('error', '')
+    except json.JSONDecodeError:
+        # Handle the case when the response is not in JSON format
+        response_txt = errormsg
+
     return response_txt
 
 
@@ -293,12 +302,6 @@ class BlockchainCmd(cmd2.Cmd):
     @cmd2.with_argparser(search_parser)
     def do_search_data(self, args):
         print()
-        """
-        Search in the blockchain using the provided code.
-
-        Usage:
-        search_data -bn <blockchain_name> -c <criteria> -v <value>
-        """
         api_key = self.api_key
         server_url = self.server_url
 
@@ -317,10 +320,20 @@ class BlockchainCmd(cmd2.Cmd):
         }
 
         try:
-            response = requests.get(url, headers=headers, data=payload)
+            response = requests.post(url, headers=headers, data=payload)
             response.raise_for_status()
-            print(response.text)
-            print(return_result(response.text))
+
+            # Parse the JSON response
+            json_response = json.loads(response.text)
+
+            # Display the message
+            print(json_response.get('message', ''))
+
+            # Display each result on a new line
+            for result in json_response.get('results', []):
+                print(f"[{result['id']}] {result['data']}")
+
+
             print()
 
         except requests.RequestException as e:
