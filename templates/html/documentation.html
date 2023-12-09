@@ -11,7 +11,7 @@
 <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
 <body>
     <nav>
-        <div class="logo">
+        <div class="logo" onclick="window.location.href='{{ url_for('web_index')}}'">
             <img src="{{ url_for('static', filename='img/logo.png') }}">
             <h1>BSS</h1>
         </div>
