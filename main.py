@@ -313,6 +313,14 @@ def add_search_data(blockchain_name, criteria, value):
     finally:
         conn.close()
 
+def is_valid_criteria(blockchain_name, criteria):
+    valid_criteria = ['id', 'hash', 'previous_hash', 'data', 'reference']
+
+    if criteria not in valid_criteria:
+        return jsonify({'error': f'Invalid criteria: "{criteria}" does not exist in the blockchain'}), 400
+
+    return None
+
 def is_data_equal_in_blockchain(blockchain_name, criteria, value):
     conn, cursor = open_database(DATABASE)
     try:
@@ -463,6 +471,8 @@ def change_username(user_id, new_username):
         # Update the user's username in the 'users' table
         cursor.execute('UPDATE users SET username = ? WHERE user_id = ?', (new_username, user_id))
         conn.commit()
+        # Update the user's updated_at column after changing the password
+        update_user_updated_at_column(g.user_id)
     except Exception as e:
         print(f'Error changing username: {str(e)}')
     finally:
@@ -479,6 +489,8 @@ def change_password(user_id, new_password):
         # Update the user's password in the 'users' table
         cursor.execute('UPDATE users SET password = ? WHERE user_id = ?', (hashed_password, user_id))
         conn.commit()
+        # Update the user's updated_at column after changing the password
+        update_user_updated_at_column(g.user_id)
     except Exception as e:
         print(f'Error changing password: {str(e)}')
     finally:
@@ -559,6 +571,25 @@ def update_last_used_timestamp():
     finally:
         conn.close()
 
+def update_user_updated_at_column(user_id):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Update the user's updated_at timestamp to the current time
+        current_time = formatted_timestamp
+        cursor.execute('''
+            UPDATE users
+            SET updated_at = ?
+            WHERE user_id = ?
+        ''', (current_time, user_id))
+
+        conn.commit()
+        print(f'Updated updated_at timestamp for user ID: {user_id}')
+    except Exception as e:
+        print(f'Error updating updated_at timestamp: {str(e)}')
+    finally:
+        conn.close()
+
 def update_blockchain_timestamp(conn, cursor, blockchain_name):
     try:
         # Update the 'last_used' timestamp in the 'blockchains' table
@@ -571,6 +602,27 @@ def update_blockchain_timestamp(conn, cursor, blockchain_name):
         conn.commit()
     except Exception as e:
         print(f'Error updating timestamp: {str(e)}')
+
+# Select Blockchain
+@app.route('/select_blockchain', methods=['POST'])
+def select_blockchain():
+    data = request.get_json()
+    blockchain_name = data.get('blockchain_name')
+
+    if not g.logged_in:
+        return jsonify({'error': 'User must log in to select a blockchain'}), 401
+
+    #API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+
+    return jsonify({'selected_blockchain': blockchain_name}), 200
 
 # Create Blockchain
 @app.route('/create_blockchain', methods=['POST'])
@@ -706,7 +758,7 @@ def store_in_blockchain():
     reference = data['reference']
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to store data in blockchain'}), 401
@@ -745,7 +797,6 @@ def store_in_blockchain():
         return jsonify({'error': f'Failed to store data: {str(e)}'}), 500
     finally:
         conn.close()
-
 
 # Delete Reference by ID
 @app.route('/delete_reference_by_id', methods=['DELETE'])
@@ -869,7 +920,6 @@ def delete_reference_by_criteria():
     finally:
         conn.close()
 
-
 @app.route('/update_block_by_id', methods=['PUT'])
 def update_block_by_id():
     data = request.get_json()
@@ -940,7 +990,6 @@ def update_block_by_id():
         return jsonify({'error': f'Failed to update block: {str(e)}'}), 500
     finally:
         conn.close()
-
 
 # Update Block by Criteria
 @app.route('/update_block_by_criteria', methods=['PUT'])
@@ -1094,7 +1143,6 @@ def update_block_by_id_as_hash():
     finally:
         conn.close()
 
-
 # Update Block by Criteria
 @app.route('/update_block_by_criteria_as_hash', methods=['PUT'])
 def update_block_by_criteria_as_hash():
@@ -1187,18 +1235,27 @@ def search_blockchain_endpoint():
     if not g.logged_in:
         return jsonify({'error': 'User must log in to search data in a blockchain'}), 401
 
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
-
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
 
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+
+    # Check if the specified criteria is a valid column name
+    validation_result = is_valid_criteria(blockchain_name, criteria)
+    if validation_result:
+        return validation_result
+
+
     if not blockchain_name or not criteria or not value:
         return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
+
+    # Check if the specified criteria is a valid column name
+    is_valid_criteria(blockchain_name, criteria)
 
     results = search_blockchain(blockchain_name, criteria, value)
     update_last_used_timestamp()
@@ -1293,7 +1350,7 @@ def list_references():
     blockchain_name = data['blockchain_name']
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to get the references in a blockchain'}), 401
@@ -1337,7 +1394,7 @@ def verify_blockchain():
     blockchain_name = data['blockchain_name']
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to verify a blockchain'}), 401
@@ -1351,6 +1408,7 @@ def verify_blockchain():
             return validation_result
 
         return verify_blockchain_integrity(blockchain_name)
+
     else:
         # Check if the user owns the specified blockchain
         if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -1456,8 +1514,13 @@ def login():
 
         user_id = get_user_id(username)
         g.user_id = user_id
+        user_type = ""
+        if check_user_admin_status(user_id):
+            user_type = "ADMIN"
+        else:
+            user_type = "USER"
 
-        return jsonify({'message': 'Login successful'}), 200
+        return jsonify({'message': 'Login successful','is_admin': user_type}), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
 
@@ -1557,6 +1620,7 @@ def delete_account():
         return jsonify({'message': 'User account deleted successfully. You have been logged out.'}), 200
 
 # ADMIN
+
 # Admin endpoint to change username of a specific user
 @app.route('/admin_change_username', methods=['POST'])
 def admin_change_username():

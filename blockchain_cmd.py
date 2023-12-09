@@ -42,6 +42,20 @@ def return_users(msg):
     response_txt = json_response.get('users', '')
     return response_txt
 
+def return_selected(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('selected_blockchain', '')
+    return response_txt
+
+def return_username(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('username', '')
+    return response_txt
+
+def return_usertype(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('is_admin','')
+    return response_txt
 
 class BlockchainCmd(cmd2.Cmd):
 
@@ -50,10 +64,23 @@ class BlockchainCmd(cmd2.Cmd):
         self.api_address = ""
         self.api_key = api_key
         self.server_url = 'http://127.0.0.1:5000'
-        self.prompt = "> "
         self.session_cookie = ""
         self.set_window_title("Blockchain Security System CLI")
+        self.username = ""  # Set username dynamically
+        self.user_type = ""
+        self.selected_blockchain = ""  # Set selected blockchain dynamically
+        self.prompt = f"BSS:{self.user_type}:{self.username}:{self.selected_blockchain}>"
+        # add keyname
 
+    def update_prompt(self):
+        self.prompt = f"BSS:{self.user_type}:{self.username}:{self.selected_blockchain}>"
+
+    # Select blockchain
+    select_parser = Cmd2ArgumentParser()
+    select_parser.add_argument('-bn', '--blockchain_name')
+
+    # Deselect blockchain
+    deselect_parser = Cmd2ArgumentParser()
 
     # Create blockchain
     create_parser = Cmd2ArgumentParser()
@@ -118,6 +145,10 @@ class BlockchainCmd(cmd2.Cmd):
     delete_reference_by_criteria_parser.add_argument('-c', '--criteria')
     delete_reference_by_criteria_parser.add_argument('-v', '--value')
 
+    # Select Blockchain
+    select_blockchain_parser =Cmd2ArgumentParser()
+    select_blockchain_parser.add_argument('selected_blockchain')
+
     # List Blockchains
     list_blockchains_parser = Cmd2ArgumentParser()
 
@@ -173,6 +204,7 @@ class BlockchainCmd(cmd2.Cmd):
 
     # Admin List Blockchains
     admin_list_blockchains_of_user_parser = cmd2.Cmd2ArgumentParser()
+    admin_list_blockchains_of_user_parser.add_argument('-id', '--user_id')
 
     # Admin List Users
     admin_list_users_parser = cmd2.Cmd2ArgumentParser()
@@ -203,9 +235,59 @@ class BlockchainCmd(cmd2.Cmd):
     key_parser = Cmd2ArgumentParser()
     key_parser.add_argument('-n', '--new_key')
 
+    def deselect(self):
+        self.selected_blockchain = ""
+        self.update_prompt()
+
+    @cmd2.with_argparser(select_parser)
+    def do_select(self, args):
+        """
+        Select a blockchain using the provided code.
+
+        Usage:
+        select_blockchain -bn <blockchain_name>
+        """
+        api_key = self.api_key
+        server_url = self.server_url
+
+        url = f'{server_url}/select_blockchain'
+
+        payload = json.dumps({
+            'blockchain_name': args.blockchain_name
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            selected = return_selected(response.text)
+            print(f'Blockchain "{selected}" has been selected.')
+            self.selected_blockchain = selected
+            self.update_prompt()
+            print()
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(deselect_parser)
+    def do_deselect(self, args):
+        if self.selected_blockchain == "":
+            print("No blockchains currently selected.")
+            print()
+        else:
+            print(f'Blockchain {self.selected_blockchain} has been deselected.')
+            print()
+            self.deselect()
+            self.update_prompt()
+
     @cmd2.with_argparser(create_parser)
     def do_create(self, args):
-        print()
         """
         Create a new blockchain using the provided code.
 
@@ -246,7 +328,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(delete_parser)
     def do_delete_blockchain(self, args):
-        print()
         """
         Delete an existing blockchain using the provided code.
 
@@ -279,7 +360,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(store_parser)
     def do_store(self, args):
-        print()
         """
         Store hashed data in the blockchain using the provided code.
 
@@ -290,6 +370,9 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/store_in_blockchain'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
@@ -315,7 +398,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(store_hashed_parser)
     def do_store_hash(self, args):
-        print()
         """
         Store hashed data in the blockchain using the provided code.
 
@@ -326,6 +408,9 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/store_in_blockchain_hashed'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
@@ -351,11 +436,13 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(search_parser)
     def do_search_data(self, args):
-        print()
         api_key = self.api_key
         server_url = self.server_url
 
         url = f'{server_url}/search_in_blockchain'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
@@ -382,7 +469,6 @@ class BlockchainCmd(cmd2.Cmd):
             # Display each result on a new line
             for result in json_response.get('results', []):
                 print(f"[{result['id']}] {result['data']}")
-
 
             print()
 
@@ -450,18 +536,19 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(verify_parser)
     def do_verify_blockchain(self, args):
-        print()
         """
         Verify the integrity of the 'nicochain' blockchain using the provided code.
         """
-        blockchain_name = args.blockchain_name
         api_key = self.api_key
         server_url = self.server_url
 
         url = f'{server_url}/verify_blockchain'
 
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
+
         payload = json.dumps({
-            "blockchain_name": blockchain_name
+            "blockchain_name": args.blockchain_name
         })
 
         headers = {
@@ -478,7 +565,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(return_error(response.text))
-            print()
+            print(response.text)
 
     @cmd2.with_argparser(update_block_by_id_parser)
     def do_update_by_id(self, args):
@@ -488,6 +575,9 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         update_by_id -bn <blockchain_name> -id <block_id> -n <new_data>
         """
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
+
         if not args.blockchain_name or not args.block_id or not args.new_data:
             print("Error: Blockchain name, block ID, and new data are required.")
             print("Usage: update_block_by_id -bn <blockchain_name> -id <block_id> -n <new_data>")
@@ -495,6 +585,9 @@ class BlockchainCmd(cmd2.Cmd):
             return
 
         update_block_url = f'{self.server_url}/update_block_by_id'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         headers = {
             'apikey': self.api_key,
@@ -529,7 +622,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(update_parser)
     def do_update_block(self, args):
-        print()
         """
         Update a block in the blockchain by criteria using the provided code.
 
@@ -540,6 +632,9 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/update_block_by_criteria'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
@@ -572,6 +667,9 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         update_block_by_id_hashed -bn <blockchain_name> -id <block_id> -n <new_data>
         """
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
+
         if not args.blockchain_name or not args.block_id or not args.new_data:
             print("Error: Blockchain name, block ID, and new data are required.")
             print("Usage: update_block_by_id_as_hash -bn <blockchain_name> -id <block_id> -n <new_data>")
@@ -619,6 +717,9 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         update_as_hash -bn <blockchain_name> -c <criteria> -v <value> -n <new_data>
         """
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
+
         if not args.blockchain_name or not args.criteria or not args.value or not args.new_data:
             print("Error: Blockchain name, criteria, value, and new data are required.")
             print("Usage: update_block_by_criteria_as_hash -bn <blockchain_name> -c <criteria> -v <value> -n <new_data>")
@@ -661,7 +762,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(delete_reference_parser)
     def do_delete_block(self, args):
-        print()
         """
         Delete a reference in the blockchain by ID using the provided code.
 
@@ -672,6 +772,9 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/delete_reference_by_id'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
@@ -695,13 +798,16 @@ class BlockchainCmd(cmd2.Cmd):
             print()
 
     @cmd2.with_argparser(delete_reference_by_criteria_parser)
-    def do_delete_block_by_criteria(self, args):
+    def do_delete_blocks_by_criteria(self, args):
         """
         Delete a reference in the blockchain by criteria using the provided code.
 
         Usage:
         delete_reference_by_criteria -bn <blockchain_name> -c <criteria> -v <value>
         """
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
+
         if not args.blockchain_name or not args.criteria or not args.value:
             print("Error: Blockchain name, criteria, and value are required.")
             print("Usage: delete_reference_by_criteria -bn <blockchain_name> -c <criteria> -v <value>")
@@ -743,7 +849,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(list_blockchains_parser)
     def do_list(self, args):
-        print()
         """
         List all blockchains.
 
@@ -780,7 +885,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(list_references_parser)
     def do_list_r(self, args):
-        print()
         """
         List references for a specific blockchain.
 
@@ -791,6 +895,9 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/list_references'
+
+        if args.blockchain_name is None:
+            args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name
@@ -1017,6 +1124,10 @@ class BlockchainCmd(cmd2.Cmd):
             if "Login successful" in response.text:
                 print(return_message(response.text))
                 print()
+
+                self.username = args.username
+                self.user_type = return_usertype(response.text)
+                self.update_prompt()
             else:
                 print(return_error(response.text))
                 print()
@@ -1049,6 +1160,10 @@ class BlockchainCmd(cmd2.Cmd):
             self.session_cookie = ""
             print()
 
+            self.username = ""
+            self.user_type = ""
+            self.deselect()
+
         except requests.RequestException as e:
             print(return_error(response.text))
             print()
@@ -1066,6 +1181,7 @@ class BlockchainCmd(cmd2.Cmd):
         payload = {
             "new_username": args.new_username
         }
+
         headers = {
             'Cookie' : self.session_cookie
         }
@@ -1089,6 +1205,9 @@ class BlockchainCmd(cmd2.Cmd):
                         break
 
             self.session_cookie = "session=" + session_value
+
+            self.username = args.new_username
+            self.update_prompt()
 
         except requests.RequestException as e:
             print(return_error(response.text))
@@ -1195,6 +1314,7 @@ class BlockchainCmd(cmd2.Cmd):
             print(return_error(response.text))
             print()
 
+    # NO UPDATE USERNAME FOR ADMIN YET
     @cmd2.with_argparser(admin_change_username_parser)
     def do_admin_change_username(self, args):
         """
@@ -1457,9 +1577,9 @@ class BlockchainCmd(cmd2.Cmd):
 
 
 if __name__ == '__main__':
-    api_key = ''
+    api_key = 'bac9a0eb-f23d-4911-b69b-ddb352bb55aa'
     api_address = "https://127.0.0.1:5000"
-    print("- Blockchain Security System v1.0-")
+    print("- Blockchain Security System v1.0 -")
     print("Address: ", api_address)
     print("Key: ", api_key)
     print()
