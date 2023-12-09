@@ -20,7 +20,7 @@ utc_now = datetime.utcnow()
 local_now = utc_now + timedelta(hours=8)
 formatted_timestamp = local_now.strftime('%Y-%m-%d %H:%M:%S')
 search_result = []
-search_result_elements = []
+search_result_data = []
 
 # Database config
 DATABASE = 'BSS.db'
@@ -292,19 +292,19 @@ def search_blockchain(blockchain_name, criteria, value):
     finally:
         conn.close()
 
-def add_search_results(blockchain_name, criteria, value):
+def add_search_data(blockchain_name, criteria, value):
     conn, cursor = open_database(DATABASE)
     try:
-        search_result.clear()
+        search_result_data.clear()
         cursor.execute(f'''
-            SELECT ata
+            SELECT data
             FROM {blockchain_name}
             WHERE {criteria} = ? AND reference IS NOT NULL
         ''', (value,))
         result = cursor.fetchall()
         if result:
             # Extend the global search_result list
-            search_result.extend(result)
+            search_result_data.extend(result)
             return [{'data': row[0]} for row in result]
         else:
             return None
@@ -1207,9 +1207,9 @@ def search_blockchain_endpoint():
         num_results = len(results)
         max_display = 10
 
-        # Store the results
+        # Store the results in g
         search_result = results
-        search_result_elements = add_search_results(blockchain_name, criteria, value)
+        search_data = add_search_data(blockchain_name, criteria, value)
 
 
         # Display the number of results found
@@ -1231,21 +1231,36 @@ def get_search_result():
     return jsonify({'result': search_result})
 
 # GET ELEMENT FROM RESULT
-@app.route('/get_element_by_index', methods=['GET'])
+@app.route('/get_search_index', methods=['GET'])
 def get_element_by_index():
-    global search_result  # Use the global search_result variable
+    global search_result_data  # Use the global search_result_data variable
 
     data = request.get_json()
     index = data.get('index')
 
     try:
         index = int(index)
-        if 0 <= index < len(search_result):
-            return jsonify({'result': search_result_elements[index]})
+        if 0 <= index < len(search_result_data):
+            result = search_result_data[index]
+            return jsonify({'result': str(result[0])})
+        if len(search_result_data) == 0:
+            return jsonify({'error': 'Search results are empty.'})
         else:
             return jsonify({'error': 'Index out of range'}), 400
     except ValueError:
         return jsonify({'error': 'Invalid index'}), 400
+
+@app.route('/clear_search_result', methods=['POST'])
+def clear_search_result():
+    global search_result_data  # Use the global search_result_data variable
+    global search_result  # Use the global search_result variable
+
+    if search_result_data is not None and search_result:
+        search_result_data.clear()
+        search_result.clear()
+        return jsonify({'message': 'Cleared search results.'})
+    else:
+        return jsonify({'error': 'Search results are empty.'})
 
 # List Blockchains
 @app.route('/list_blockchains', methods=['GET'])
@@ -1401,7 +1416,7 @@ def register_user():
         return jsonify({'error': 'Username is already taken'}), 400
 
     # Check if the new_password meets the complexity requirements
-    if not is_valid_password(new_password):
+    if not is_valid_password(password):
         return jsonify({'error': 'Invalid password. It must have at least 6 characters and contain a number or a symbol'}), 400
 
     # Hash the password before storing it
@@ -1601,7 +1616,7 @@ def list_users():
     try:
         # Fetch user data
         cursor.execute('SELECT user_id, username FROM users')
-        users = [{'user_id': row[0], 'username': row[1]} for row in cursor.fetchall()]
+        users = [f"[id: {row[0]}] {row[1]}" for row in cursor.fetchall()]
         return jsonify({'users': users}), 200
     except Exception as e:
         return jsonify({'error': f'Failed to fetch users: {str(e)}'}), 500
@@ -1627,13 +1642,13 @@ def admin_delete_account():
     current_user_id = get_user_id(username)  # Replace with your actual function to get user ID
 
     # Check if the current admin is trying to delete their own account
-    if current_user_id == user_id_to_delete:
+    if current_user_id == int(user_id_to_delete):
         session.clear()
         delete_user_account(current_user_id)
         return jsonify({'message': 'Admin account deleted successfully. You have been logged out.'}), 200
 
     # Check if the user to be deleted is also an admin
-    if is_admin_user(user_id_to_delete):
+    if is_admin_user(user_id_to_delete) :
         return jsonify({'error': 'Admin accounts cannot be deleted by other admins'}), 403
 
     # Delete the specified user account and associated data

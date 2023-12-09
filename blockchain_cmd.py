@@ -12,7 +12,6 @@ def return_message(msg):
     response_txt = json_response.get('message', '')
     return response_txt
 
-
 def return_result(msg):
     json_response = json.loads(msg)
     response_txt = json_response.get('result', '')
@@ -31,6 +30,16 @@ def return_error(errormsg):
         # Handle the case when the response is not in JSON format
         response_txt = errormsg
 
+    return response_txt
+
+def return_blockchains(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('blockchains', '')
+    return response_txt
+
+def return_users(msg):
+    json_response = json.loads(msg)
+    response_txt = json_response.get('users', '')
     return response_txt
 
 
@@ -77,6 +86,13 @@ class BlockchainCmd(cmd2.Cmd):
     search_parser.add_argument('-bn', '--blockchain_name')
     search_parser.add_argument('-c', '--criteria')
     search_parser.add_argument('-v', '--value')
+
+    # Display Search
+    display_search_results_parser = Cmd2ArgumentParser()
+
+    # Get Search Index
+    get_search_index_parser = Cmd2ArgumentParser()
+    get_search_index_parser.add_argument('-i','--index')
 
     # Update
     update_parser = Cmd2ArgumentParser()
@@ -128,7 +144,41 @@ class BlockchainCmd(cmd2.Cmd):
     # Logout
     logout_parser = Cmd2ArgumentParser()
 
+    # Change Username
+    change_username_parser = Cmd2ArgumentParser()
+    change_username_parser.add_argument('-n','--new_username')
+
+    # Change Password
+    change_password_parser = Cmd2ArgumentParser()
+    change_password_parser.add_argument('-p', '--new_password')
+
+    # Delete account
+    delete_account_parser = Cmd2ArgumentParser()
+
+    # ADMIN
+
+    # Delete Accounts
+    admin_delete_account_parser = Cmd2ArgumentParser()
+    admin_delete_account_parser.add_argument('user_id')
+
+    # Admin Change Usernames
+    admin_change_username_parser = Cmd2ArgumentParser()
+    admin_change_username_parser.add_argument('-id', '--user_id')
+    admin_change_username_parser.add_argument('-u', '--new_username')
+
+    # Admin Change Password
+    admin_change_password_parser = cmd2.Cmd2ArgumentParser()
+    admin_change_password_parser.add_argument('-id', '--user_id')
+    admin_change_password_parser.add_argument('-p', '--new_password')
+
+    # Admin List Blockchains
+    admin_list_blockchains_of_user_parser = cmd2.Cmd2ArgumentParser()
+
+    # Admin List Users
+    admin_list_users_parser = cmd2.Cmd2ArgumentParser()
+
     # API
+
     # Generate API Key
     generate_key_parser = Cmd2ArgumentParser()
     generate_key_parser.add_argument('-n', '--api_name')
@@ -339,6 +389,63 @@ class BlockchainCmd(cmd2.Cmd):
         except requests.RequestException as e:
             print(return_error(response.text))
             print(return_message(response.text))
+            print()
+
+    @cmd2.with_argparser(display_search_results_parser)
+    def do_display_search_results(self, args):
+        """
+        Display search results.
+
+        Usage:
+        display_search_results
+        """
+        api_key = self.api_key
+        url = f'{self.server_url}/display_search_results'
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            print(return_result(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(get_search_index_parser)
+    def do_get_search_index(self, args):
+        """
+        Get search index.
+
+        Usage:
+        get_search_index --index <index>
+        """
+        url = f'{self.server_url}/get_search_index'
+
+        data = {
+            'index': args.index
+        }
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers, data=json.dumps(data))
+            response.raise_for_status()
+            print(return_result(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(str(e)))
             print()
 
     @cmd2.with_argparser(verify_parser)
@@ -870,6 +977,13 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         login -u <username> -p <password>
         """
+
+        if not args.username or not args.password:
+            print("Error: Username and password are required.")
+            print("Usage: login -u <username> -p <password>")
+            print()
+            return
+
         url = f'{self.server_url}/login'
 
         payload = json.dumps({
@@ -933,6 +1047,264 @@ class BlockchainCmd(cmd2.Cmd):
             print(return_message(response.text))
 
             self.session_cookie = ""
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(change_username_parser)
+    def do_change_username(self, args):
+        """
+        Change the username.
+
+        Usage:
+        change_username <new_username>
+        """
+        url = f'{self.server_url}/change_username'
+
+        payload = {
+            "new_username": args.new_username
+        }
+        headers = {
+            'Cookie' : self.session_cookie
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+            # Extract the session value from the Set-Cookie header
+            set_cookie_header = response.headers.get('Set-Cookie')
+            session_value = None
+
+            if set_cookie_header:
+                # Parse the Set-Cookie header to extract the session value
+                cookies = [cookie.strip() for cookie in set_cookie_header.split(';')]
+                for cookie in cookies:
+                    if cookie.startswith('session='):
+                        session_value = cookie.split('=')[1]
+                        break
+
+            self.session_cookie = "session=" + session_value
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(change_password_parser)
+    def do_change_password(self, args):
+        """
+        Change the password for the logged-in user.
+
+        Usage:
+        change_password -p <new_password>
+        """
+        url = f'{self.server_url}/change_password'
+
+        payload = {
+            'new_password': args.new_password
+        }
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(delete_account_parser)
+    def do_delete_account(self, args):
+        """
+        Delete a user account.
+
+        Usage:
+        delete_account
+        """
+        url = f'{self.server_url}/delete_account'
+
+        payload = {}
+        headers = {
+            'Cookie' : self.session_cookie
+        }
+
+        try:
+            response = requests.request("DELETE", url, headers=headers, data=json.dumps(payload))
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+            # Clear the session cookie
+            self.session_cookie = ""
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    # ADMIN
+    @cmd2.with_argparser(admin_delete_account_parser)
+    def do_admin_delete_account(self, args):
+        """
+        Admin delete a user account.
+
+        Usage:
+        admin_delete_account <user_id>
+        """
+        url = f'{self.server_url}/admin_delete_account'
+
+        payload = {
+            'user_id': args.user_id
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.delete(url, headers=headers, json=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+            self.session_cookie = ""
+
+            # Extract the session value from the Set-Cookie header
+            set_cookie_header = response.headers.get('Set-Cookie')
+            session_value = None
+
+            if set_cookie_header:
+                # Parse the Set-Cookie header to extract the session value
+                cookies = [cookie.strip() for cookie in set_cookie_header.split(';')]
+                for cookie in cookies:
+                    if cookie.startswith('session='):
+                        session_value = cookie.split('=')[1]
+                        break
+
+            self.session_cookie = "session=" + session_value
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(admin_change_username_parser)
+    def do_admin_change_username(self, args):
+        """
+        Change the username of a user account by user_id.
+
+        Usage:
+        admin_change_username -u <user_id> -n <new_username>
+        """
+        url = f'{self.server_url}/admin_change_username'
+
+        payload = {
+            'user_id': args.user_id,
+            'new_username': args.new_username
+        }
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(admin_change_password_parser)
+    def do_admin_change_password(self, args):
+        """
+        Admin change password.
+
+        Usage:
+        admin_change_password -id <user_id> -p <new_password>
+        """
+        url = f'{self.server_url}/admin_change_password'
+
+        payload = json.dumps({
+            "user_id": args.user_id,
+            "new_password": args.new_password
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(admin_list_blockchains_of_user_parser)
+    def do_admin_list_blockchains_of_user(self, args):
+        """
+        Admin list blockchains of a user.
+
+        Usage:
+        admin_list_blockchains_of_user -id <user_id>
+        """
+        url = f'{self.server_url}/admin_list_blockchains_of_user'
+        payload = json.dumps({
+            "user_id": args.user_id
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.get(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(return_blockchains(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    @cmd2.with_argparser(admin_list_users_parser)
+    def do_admin_list_users(self, args):
+        """
+        Admin list users.
+
+        Usage:
+        admin_list_users --user_id <user_id>
+        """
+        url = f'{self.server_url}/admin_list_users'
+
+        payload = ""
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie
+        }
+
+        try:
+            response = requests.get(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(return_users(response.text))
             print()
 
         except requests.RequestException as e:
