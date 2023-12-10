@@ -1611,10 +1611,10 @@ def verify_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
     blockchain_password = data['blockchain_password']
-    api_key = data.get('apikey')
-
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
+    api_key = data.get('apikey')
+
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to verify a blockchain'}), 401
