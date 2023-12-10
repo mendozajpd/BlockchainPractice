@@ -11,7 +11,7 @@
 <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
 <body>
     <nav>
-        <div class="logo">
+        <div class="logo" onclick="window.location.href='{{ url_for('web_index')}}'">
             <img src="{{ url_for('static', filename='img/logo.png') }}">
             <h1>BSS</h1>
         </div>
@@ -29,37 +29,1274 @@
 
             <div class="list-container get-started">
                 <h1>Get Started</h1>
-                <ul>
-                    <li id="active">Overview</li>
-                    <li>Introduction</li>
-                    <li>Quickstart</li>
-                    <li>Models</li>
-                    <li>Tutorials</li>
+                <ul class="GetStarted">
+                    <li class="active" onclick="scrollToSection('overview')">Overview</li>
+                    <li onclick="scrollToSection('intro')">Introduction</li>
+                    <li onclick="scrollToSection('library')">Libary</li>
+                    <li onclick="scrollToSection('api')">API</li>
+                    <li onclick="scrollToSection('terminal')">Terminal</li>
+                    <li onclick="scrollToSection('tutorials')">Tutorials</li>
                 </ul>
             </div>
 
-            <div class="list-container capabilities">
-                <h1>Capabilities</h1>
-                <ul>
-                    <li>Text generation</li>
-                    <li>Function calling</li>
-                    <li>Embeddings</li>
-                    <li>Fine-tuning</li>
-                    <li>Image generation</li>
-                    <li>Vision</li>
-                    <li>Text-to-speech</li>
-                    <li>Image generation</li>
-                    <li>Speech-to-text</li>
-                    <li>Moderations</li>
+            <div class="list-container terminal-features">
+                <h1>Terminal Features</h1>
+                <ul class="TerminalFeatures">
+                    <li onclick="scrollToSection('accountCommand')">Account Commands</li>
+                    <li onclick="scrollToSection('manageBlockchain')">Manage Blockchain</li>
+                    <li onclick="scrollToSection('storeData')">Store Data</li>
+                    <li onclick="scrollToSection('searchBlocks')">Search Blocks</li>
+                    <li onclick="scrollToSection('updateBlocks')">Update Blocks</li>
+                    <li onclick="scrollToSection('deleteBlocks')">Delete Blocks</li>
+                    <li onclick="scrollToSection('lists')">Lists</li>
+                    <li onclick="scrollToSection('APICommands')">API Commands</li>
                 </ul>
             </div>
 
         </aside>
 
         <section>
-            <div class="content"></div>
+            <div class="content">
+
+                <div class="content-container getStarted active">
+                   <div class="section" id="overview">
+                        <h1>Overview</h1>
+                        
+                   </div>
+                   <div class="section" id="intro">
+                    <h1>Introduction</h1>
+                   </div>
+                   <div class="section" id="library">
+                    <h1>Library</h1>
+                   </div>
+                   <div class="section" id="api">
+                    <h1>API</h1>
+                   </div>
+                   <div class="section" id="terminal">
+                    <h1>Terminal</h1>
+                   </div>
+                   <div class="section" id="tutorials">
+                    <h1>Tutorials</h1>
+                   </div>
+                </div>
+
+                <div class="terminalFeatures">
+
+                    <div class="section" id="accountCommand">
+                        
+                        <h1>Account Commands</h1>
+
+                        <!-- Register -->
+                        <div class="section-content">
+                            <h4>register</h4>
+                            <p>
+                                The <strong>‘register’</strong> command enables user registration through the command line. It sends a POST request to the ‘/register’ endpoint with the provided username and password.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>register -u &lt;username&gt; -p &lt;password&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -u, --username: Specifies the desired username for registration.<br>
+                                -p, --password: Specifies the desired password for registration.
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>register -u <span style="color: #6ffe1c;">dela_cruz</span> -p <span style="color: #6ffe1c;">strongPass123</span></div>
+                                    <div>User "dela_cruz" registered successfully</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Login Section -->
+                        <div class="section-content">
+                            <h4>login</h4>
+                            <p>
+                                The <strong>‘login’</strong> command  handles user authentication by validating the provided username and password. It send POST request to the ‘/login’ endpoint with the provided username and password to validate.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>login -u &lt;username&gt; -p &lt;password&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -u, --username: User's username <br>
+                                -p, --password: User's password
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>login -u <span style="color: #6ffe1c;">dela_cruz</span> -p <span style="color: #6ffe1c;">strongPass123</span></div>
+                                    <div>Login successful</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Logout Section -->
+                        <div class="section-content">
+                            <h4>logout</h4>
+                            <p>
+                                The <strong>‘logout’</strong> command is designed to handle POST requests for user logout. 
+                                If the user is currently logged in, it clears the session, logging the user out successfully. 
+                                It sends a POST request to the API endpoint, handles the response, and updates the CLI session accordingly. 
+                                Upon successful logout, the session cookie is cleared, and the CLI user details are reset.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>logout</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -u, --username: User's username <br>
+                                -p, --password: User's password
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>logout</div>
+                                    <div>Login successful</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Change Username Section -->
+                        <div class="section-content">
+                            <h4>change_username</h4>
+                            <p>
+                                The <strong>‘change_username’</strong> command allows users to change their username by sending a POST request to the ‘/change_username’ endpoint on the server. The command takes a single argument, &lt;new_username&gt;, representing the desired new username.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>change_username -n &lt;new_username&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -n, --new_username : Specifies the desired new username.
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:> -n <span style="color: #6ffe1c;">john_mark</span></div>
+                                    <div>Username changed successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Change Password Section -->
+                        <div class="section-content">
+                            <h4>change_password</h4>
+                            <p>
+                                The <strong>‘change_password’</strong> command allows the logged-in user to change their password by sending a POST request to the ‘/change_password’ endpoint. The new password is specified as an argument when using the command.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>change_password -p &lt;new_password&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -p, --new_password: Specifies the desired new password.
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:john_mark:>change_password -p <span style="color: #6ffe1c;">newPass123</span></div>
+                                    <div>Password changed successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Account Section -->
+                        <div class="section-content">
+                            <h4>delete_account</h4>
+                            <p>
+                                The <strong>delete_account</strong> command allows the user to delete their account by sending a DELETE request to the ‘/delete_account’ endpoint. This action permanently removes the user's account.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>delete_account</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:john_mark:>delete_account</div>
+                                    <div>User account deleted successfully. You have been logged out</div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                     </div>
+
+                    </div>
+
+                    <div class="section" id="manageBlockchain">
+                     <h1>Manage Blockchain</h1>
+
+                        <!-- Create Section -->
+                        <div class="section-content">
+                            <h4>create</h4>
+                            <p>
+                                The <strong>‘create’</strong> command allows a logged-in user to create a new blockchain by sending a CREATE request to the /create_blockchain endpoint . The blockchain is associated with the user and stored in a dedicated table in the database. 
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>create -bn &lt;blockchain_name&gt; -pub &lt;boolean&gt; -pass &lt;blockchain_password&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain_name : Specifies the desired new blockchain name. <br>
+                                -pub, --new_username : Specifies the desired new username. <br>
+                                -pass, --new_username : Specifies the desired new username.
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>create -bn <span style="color: #6ffe1c;">students</span> -pub <span style="color: #6ffe1c;">0</span> -pass <span style="color: #6ffe1c;">strongPass123</span></div>
+                                    <div>Blockchain "students" created successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Section -->
+                        <div class="section-content">
+                            <h4>delete_blockchain</h4>
+                            <p>
+                                The <strong>‘delete_blockchain’</strong> command  is used to delete an existing blockchain. The CLI command delete_blockchain interacts with this endpoint by sending a DELETE request with the specified blockchain name.</p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>delete_blockchain -bn &lt;blockchain_name&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Identifies the intended blockchain
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>delete_blockchain -bn <span style="color: #6ffe1c;">age</span></div>
+                                    <div>Blockchain "age" deleted successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Verify Section -->
+                         <div class="section-content">
+                            <h4>verify_blockchain</h4>
+                            <p>
+                                The <strong>‘verify_blockchain’</strong> command  allows users, both regular and admin, to verify the integrity of a blockchain. The verification process involves checking the consistency and validity of the blocks within the blockchain.<h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>verify_blockchain -bn &lt;blockchain_name&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Identifies the intended blockchain
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>verify_blockchain -bn <span style="color: #6ffe1c;">sex</span></div>
+                                    <div>Blockchain integrity verified</div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Select Section -->
+                         <div class="section-content">
+                            <h4>select_blockchain</h4>
+                            <p>
+                                The <strong>‘select_blockchain’</strong>  command allows users to select a blockchain for further interactions. It sends a request to the server to choose a specific blockchain by name.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>select_blockchain -bn &lt;blockchain_name&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Identifies the intended blockchain
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>select_blockchain -bn <span style="color: #6ffe1c;">age</span></div>
+                                    <div>Blockchain "age" has been selected</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                         <!-- Deselect Section -->
+                         <div class="section-content">
+                            <h4>deselect</h4>
+                            <p>
+                                The <strong>‘deselect’</strong> command  is used to deselect or clear the currently selected blockchain. After calling this method.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>deselect</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Identifies the intended blockchain
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>deselect</div>
+                                    <div>Blockchain "age" has been deselected</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="section" id="storeData">
+                     <h1>Store Data</h1>
+
+                        <!-- Store Data Section -->
+                        <div class="section-content">
+                            <h4>Store</h4>
+                            <p>
+                                The <strong>store</strong>  command  allows users to store data in a specified blockchain. The user must be logged in, own the specified blockchain, and provide the necessary information, including the blockchain name, data to store, and a reference for the stored data.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>store -bn &lt;blockchain_name&gt; -d &lt;data&gt; -r &lt;reference&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Identifies the intended blockchain. <br>
+                                -d, --data: Specifies the information to be stored. <br>
+                                -r, --reference: Specifies the reference to associate with the stored data.
+
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>store -bn <span style="color: #6ffe1c;">students</span> -d <span style="color: #6ffe1c;">john_doe</span> -r <span style="color: #6ffe1c;">names</span></div>
+                                    <div>Data stored in "students"</div>
+                                </div>
+                            </div>
+                        </div>
+
+                            <!-- Store Hashed Data Section -->
+                            <div class="section-content">
+                                <h4>Store Hash</h4>
+                                <p>
+                                    The <strong>store_hash</strong>  endpoint allows users to store doubly hashed data in a specified blockchain. The user must be logged in, own the specified blockchain, and provide the necessary information, including the blockchain name, data to be doubly hashed, and a reference for the stored doubly hashed data.
+                                </p>
+                                <h5>Usage</h5>
+    
+                                <div class="terminal-card">
+                                    <div class="terminal-header">
+                                        <div class="terminal-button red"></div>
+                                        <div class="terminal-button yellow"></div>
+                                        <div class="terminal-button green"></div>
+                                    </div>
+                                    <div class="terminal-content">
+                                        <div><span class="terminal-prompt">$ </span>BSS:::>store_hash -bn &lt;blockchain_name&gt; -d &lt;data&gt; -r &lt;reference&gt;</div>
+                                        <button class="copy-button" onclick="copyToClipboard(this)">
+                                            <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                        </button>
+                                    </div>
+                                </div>
+    
+                                <h5>Command Arguments</h5>
+                                <p style="margin-left: 5px;">
+                                    -bn, --blockchain_name: Name of the blockchain where data will be stored (optional, uses the selected blockchain if not provided) <br>
+                                    -data, --data: Data to be doubly hashed and stored in the blockchain <br>
+                                    -ref, --reference: Reference for the stored doubly hashed data                                    
+                                </p>
+    
+                                <h5>Example Usage</h5>
+    
+                                <div class="terminal-card">
+                                    <div class="terminal-header">
+                                        <div class="terminal-button red"></div>
+                                        <div class="terminal-button yellow"></div>
+                                        <div class="terminal-button green"></div>
+                                    </div>
+                                    <div class="terminal-content">
+                                        <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>store_hash -bn <span style="color: #6ffe1c;">students</span> -d <span style="color: #6ffe1c;">john_doe</span> -r <span style="color: #6ffe1c;">names</span></div>
+                                        <div>Hashed data stored in "students"</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                    </div>
+
+                    <div class="section" id="searchBlocks">
+                     <h1>Search Blocks</h1>
+
+                        <!-- Search Blocks Section -->
+                        <div class="section-content">
+                            <h4>Search Blocks</h4>
+                            <p>
+                                The <strong>search_data</strong>  allows users to search for data in a specified blockchain based on given criteria and a search value. The user must be logged in, own the specified blockchain, and provide the necessary information, including the blockchain name, search criteria, and search value.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>search_data -bn &lt;blockchain_name&gt; -c &lt;criteria&gt; -v &lt;value&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: Name of the blockchain where data will be searched (optional, uses the selected blockchain if not provided) <br>
+                                -c, --criteria: Criteria for searching (e.g., column name) <br>
+                                -v, --value: Value to search for in the specified criteria                              
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>search_data -bn <span style="color: #6ffe1c;">students</span> -c <span style="color: #6ffe1c;">reference</span> -v <span style="color: #6ffe1c;">names</span></div>
+                                    <div>3 matching data found in the blockchain. Display 3 out 3</div>
+                                    <div>[2] john_doe</div>
+                                    <div>[3] mark_davis</div>
+                                    <div>[4] ben_trum</div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Display search result Section -->
+                         <div class="section-content">
+                            <h4>display_search_result</h4>
+                            <p>
+                                The <strong>‘dispaly_search_results’</strong> returns the search results in a JSON format. If the search results are empty, it returns a message indicating that the search results are empty. The CLI command display_search_results interacts with this endpoint, sending a GET request to retrieve and display the search results.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>display_search_results</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>display_search_results</div>
+                                    <div>[[2] john_doe, [3] mark_davis, [4] ben_trum]</div>
+                                </div>
+                            </div>
+                        </div>
+                         <!-- Get Search Index Section -->
+                         <div class="section-content">
+                            <h4>get_search_index</h4>
+                            <p>
+                                The <strong>‘get_search_index’</strong> command retrieves an element from the search index based on the provided index. The CLI command get_search_index interacts with this endpoint, sending a GET request with the specified index.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>get_search_index --index&lt;index&gt; </div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                                <p style="margin-left: 5px;">
+                                    --index: The index of the element to retrieve from the search index                                
+                                </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>display_search_results</div>
+                                    <div>[[2] john_doe, [3] mark_davis, [4] ben_trum]</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="section" id="updateBlocks">
+                        <h1>Update Blocks</h1>
+
+                        <!-- Update Blocks Section -->
+                        <div class="section-content">
+                            <h4>update_by_id</h4>
+                            <p>
+                                The <strong>update_by_id</strong>  command lets authenticated users modify a blockchain block's data using its unique identifier, with ownership and API key validations included in the process. The response provides success messages or specific error responses based on the request outcome.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>update_by_id -bn &lt;blockchain_name&gt; -id &lt;id_number&gt; -n &lt;new_data&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain name: <br>
+                                -id, --id number: <br>
+                                -n, --new data:
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>update_by_id -bn <span style="color: #6ffe1c;">students</span> -id <span style="color: #6ffe1c;">2</span> -n <span style="color: #6ffe1c;">anna_gab</span></div>
+                                    <div>Block ID 2 update successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Update Blocks Section -->
+                        <div class="section-content">
+                            <h4>update_block</h4>
+                            <p>
+                                The <strong>update_block</strong> command  allows users to update a block in a specified blockchain based on given criteria and a search value. The user must be logged in, own the specified blockchain, and provide the necessary information, including the blockchain name, update criteria, search value, and the new data.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>update_block -bn &lt;blockchain_name&gt; -c &lt;criteria&gt; -v &lt;value&gt; -n &lt;new_data&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -bn, --blockchain_name: Name of the blockchain where data will be updated (optional, uses the selected blockchain if not provided) <br>
+                                -c, --criteria: Criteria for updating the block (e.g., column name) <br>
+                                -v, --value: Value to search for in the specified criteria to identify the block to be updated <br>
+                                -n, --new_data: New data to replace the existing data in the identified block          
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>update_block -bn <span style="color: #6ffe1c;">students</span> -c <span style="color: #6ffe1c;">id</span> -v <span style="color: #6ffe1c;">1</span> -n <span style="color: #6ffe1c;">anna_gab</span></div>
+                                    <div>Block ID 2 update successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                       </div>
+
+                    <div class="section" id="deleteBlocks">
+                     <h1>Delete Blocks</h1>
+
+                     <!-- Update Blocks Section -->
+                     <div class="section-content">
+                        <h4>delete_block</h4>
+                        <p>
+                            The <strong>delete_block</strong>  command allows users to delete a blockchain and all associated data by specifying the blockchain name. It performs the blockchain deletion based on the provided blockchain name.
+                        </p>
+                        <h5>Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:::>delete_block -bn &lt;blockchain_name&gt;</div>
+                                <button class="copy-button" onclick="copyToClipboard(this)">
+                                    <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                </button>
+                            </div>
+                        </div>
+
+                        <h5>Command Arguments</h5>
+                        <p style="margin-left: 5px;">
+                            -bn, --blockchain_name: Name of the blockchain to be deleted (optional, uses the selected blockchain if not provided)
+                        </p>
+
+                        <h5>Example Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>delete_block -bn <span style="color: #6ffe1c;">students</span></div>
+                                <div>Block ID 2 update successfully</div>
+                            </div>
+                        </div>
+                    </div>
+
+                     <!-- delete_blocks_by_criteria Section -->
+                     <div class="section-content">
+                        <h4>delete_blocks_by_criteria</h4>
+                        <p>
+                            The <strong>delete_blocks_by_criteria</strong> allows users to delete references in a specified blockchain based on given criteria and a search value. The user must be logged in, own the specified blockchain, and provide the necessary information, including the blockchain name, delete criteria, and delete value. It sends a DELETE request to the API endpoint, and the response is handled appropriately, printing success messages or error details.
+                        </p>
+                        <h5>Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:::>delete_block -bn &lt;blockchain_name&gt; -c &lt;criteria&gt; -v &lt;value&gt;</div>
+                                <button class="copy-button" onclick="copyToClipboard(this)">
+                                    <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                </button>
+                            </div>
+                        </div>
+
+                        <h5>Command Arguments</h5>
+                        <p style="margin-left: 5px;">
+                            -bn, --blockchain_name: Name of the blockchain where references will be deleted (optional, uses the selected blockchain if not provided) <br>
+                            -c, --criteria: Criteria for deleting references (e.g., column name) <br>
+                            -v, --value: Value to search for in the specified criteria to identify the references to be deleted                            
+                        </p>
+
+                        <h5>Example Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>delete_block -bn <span style="color: #6ffe1c;">students</span></div>
+                                <div>Block ID 2 update successfully</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
+
+                    <div class="section" id="lists">
+                     <h1>Lists</h1>
+
+                     <!-- list Section -->
+                     <div class="section-content">
+                        <h4>list</h4>
+                        <p>
+                            The <strong>‘list’</strong> command allows users to retrieve a list of blockchains associated with their account. The user must be logged in and provide valid authentication, and the command fetches and displays the blockchains owned by the user.
+                        </p>
+                        <h5>Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:::>list</div>
+                                <button class="copy-button" onclick="copyToClipboard(this)">
+                                    <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                </button>
+                            </div>
+                        </div>
+
+                        <h5>Example Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>list</div>
+                                <div>Blockchains: </div>
+                                <div>- students</div>
+                                <div>- accounts</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- list_r Section -->
+                    <div class="section-content">
+                        <h4>list_r</h4>
+                        <p>
+                            The <strong>‘list_r’</strong> command enables users to fetch a list of references associated with their account. To utilize this command, users need to be logged in and provide valid authentication. Upon execution, the command retrieves and displays the blockchains owned by the user.
+                        </p>
+                        <h5>Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:::>list_r</div>
+                                <button class="copy-button" onclick="copyToClipboard(this)">
+                                    <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                </button>
+                            </div>
+                        </div>
+
+                        <h5>Example Usage</h5>
+
+                        <div class="terminal-card">
+                            <div class="terminal-header">
+                                <div class="terminal-button red"></div>
+                                <div class="terminal-button yellow"></div>
+                                <div class="terminal-button green"></div>
+                            </div>
+                            <div class="terminal-content">
+                                <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>list_r</div>
+                                <div>References: </div>
+                                <div>- password</div>
+                                <div>- names</div>
+                                <div>- Genesis</div>
+                            </div>
+                        </div>
+                    </div>
+                     
+                    </div>
+                    <div class="section" id="APICommands">
+                        <h1>API Commands</h1>
+
+                        <!-- apikey_gen Section -->
+                        <div class="section-content">
+                            <h4>list</h4>
+                            <p>
+                                The <strong>‘apikey_gen’</strong>  command allows logged-in users to generate a new API key. The generated key is associated with the user's account and can be optionally given a name (API name). The API key is then stored in the database for later use.
+                            </p>
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>apikey_gen -n &lt;api_name&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -n or --api_name (optional): Specifies the name to be associated with the generated API key. If not provided, the default name is "Secret Key."                            
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>apikey_gen -n <span style="color: #6ffe1c;">dela_cruz</span></div>
+                                    <div>Generated API Key for dela_cruz: 219c1eff-89a5-4f4d-9e4f-626ea2249fd0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- set_key Section -->
+                        <div class="section-content">
+                            <h4>set_key</h4>
+                            <p>
+                                The <strong>‘set_key’</strong> command allows users to change the API key used for making requests to the blockchain server. The command takes a new API key as an argument and updates the API key associated with the CLI session.</p>
+
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>set_key -n &lt;new_key&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -n, --new_key: New API key to be set                           
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>set_key -n <span style="color: #6ffe1c;">219c1eff-89a5-4f4d-9e4f-626ea2249fd0</span></div>
+                                    <div>Key updated successfully.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- show_key Section -->
+                        <div class="section-content">
+                            <h4>show_key</h4>
+                            <p>
+                                The <strong>’show_key’</strong> command enables users to view the current API key associated with the CLI session. When the command is executed, it prints the API key to the console.</p>
+
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>show_key</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -n, --new_key: New API key to be set                           
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>show_key</div>
+                                    <div>Key: 219c1eff-89a5-4f4d-9e4f-626ea2249fd0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- revoke_key Section -->
+                         <div class="section-content">
+                            <h4>revoke_key</h4>
+                            <p>
+                                The <strong>‘revoke_key’</strong> command allows users to revoke an API key associated with their account for a specified API name. The CLI command revoke_key interacts with this endpoint, sending a POST request with the API name to be revoked.
+                            </p>
+
+                            <h5>Usage</h5>
+
+                            <div class="terminal-card">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:::>show_key -n &lt;new_key&gt;</div>
+                                    <button class="copy-button" onclick="copyToClipboard(this)">
+                                        <img src="{{ url_for('static', filename='img/copy-icon.png') }}">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h5>Command Arguments</h5>
+                            <p style="margin-left: 5px;">
+                                -n, --new_key: New API key to be set                           
+                            </p>
+
+                            <h5>Example Usage</h5>
+
+                            <div class="terminal-card" style="margin-bottom: 20px;">
+                                <div class="terminal-header">
+                                    <div class="terminal-button red"></div>
+                                    <div class="terminal-button yellow"></div>
+                                    <div class="terminal-button green"></div>
+                                </div>
+                                <div class="terminal-content">
+                                    <div><span class="terminal-prompt">$ </span>BSS:USER:dela_cruz:>show_key -n <span style="color: #6ffe1c;">dela_cruz</span></div>
+                                    <div>API Key for dela_cruz revoked successfully</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+
+                       </div>
+                 </div>
+
+            </div>
         </section>
     </div>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Get all list items
+            var allItems = document.querySelectorAll('.list-container li');
+    
+            // Function to handle the click event and add/remove the 'active' class
+            function handleItemClick(e) {
+                // Remove 'active' class from all items
+                allItems.forEach(function (item) {
+                    item.classList.remove('active');
+                });
+    
+                // Add 'active' class to the clicked item
+                e.target.classList.add('active');
+                
+                // Get the parent container class name
+                let parentContainer = e.target.parentNode.className;
+    
+                // Check if the parent container has the class 'GetStarted' or 'TerminalFeatures'
+                if (parentContainer.includes('GetStarted')) {
+                    document.querySelector('.getStarted').classList.add('active');
+                    document.querySelector('.terminalFeatures').classList.remove('active');
+                } else {
+                    document.querySelector('.terminalFeatures').classList.add('active');
+                    document.querySelector('.getStarted').classList.remove('active');
+                }
+            }
+    
+            // Add click event listeners to all list items
+            allItems.forEach(function (item) {
+                item.addEventListener('click', handleItemClick);
+            });
+        });
+
+    function scrollToSection(sectionId) {
+        var section = document.getElementById(sectionId);
+
+        if (section) {
+            section.scrollIntoView({ behavior: 'auto' });
+        }
+    }
+
+    function copyToClipboard(button) {
+        // Find the closest .terminal-content to the clicked button
+        let terminalContent = button.closest('.terminal-content');
+        
+        if (terminalContent) {
+            let tempTextarea = document.createElement('textarea');
+            tempTextarea.value = terminalContent.textContent.trim();
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+        }
+    }
+
+
+
+    </script>
+    
+    
+    
+</body>
+
 </body>
 
 </html>

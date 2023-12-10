@@ -13,11 +13,14 @@
 <body>
     <header>
         <nav>
-            <div class="logo">
+            <div class="logo" onclick="window.location.href='{{ url_for('web_index')}}'">
                 <img src="{{ url_for('static', filename='img/logo.png') }}">
                 <h1>BSS</h1>
             </div>
-            <ul>
+
+            <div class="burger-menu"></div>
+
+            <ul class="web-nav">
                 <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
                 <!-- Add Flask Navigation to Documentation Page -->
                 <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
@@ -29,15 +32,36 @@
             <form action="/register" method="POST" id="userForm">
                 <p>Start for free</p>
                 <h1>Create new account<span>.</span></h1>
-                    <input type="text" name="username" placeholder="Username" required autocomplete="off">
-                    <input type="text" name="password" placeholder="Password" required autocomplete="off">
-                    <input type="password-re-enter" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
+                    <input type="text" name="username" class="username" placeholder="Username" autocomplete="off" required>
+                    <input type="password" class="password" name="password" placeholder="Password" required autocomplete="off">
+                    <div class="password-requirements weak-password">
+                        <p>Weak Password: Enter a number or symbol, and at least 6 characters.</p>
+                    </div>
+                    <input type="password" class="password-2" name="password-2" placeholder="Re-enter Password" required autocomplete="off">
+                    <div class="password-requirements mismatch">
+                        <p>Password Mismatch: The passwords entered do not match.</p>
+                    </div>
                 <button type="button" onclick="submitForm()">Register</button>
             </form>
         </div>
+
         <!-- particles.js container -->
         <div id="particles-js"></div> <!-- stats - count particles -->
+
+        <div class="mobile-nav">
+            <div class="close-button">
+                <p>+</p>
+            </div>
+            <ul>
+                <li onclick="window.location.href='{{ url_for('web_index') }}'">Home</li>
+                <li onclick="window.location.href='{{ url_for('web_documentation') }}'">Documentation</li>
+                <li onclick="window.location.href='{{ url_for('web_download') }}'">Download</li>
+                <li>Register</li>
+            </ul>
+        </div>
+
     </header>
+
 
     <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> <!-- stats.js lib -->
     <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
@@ -45,32 +69,64 @@
 <!--    <script src="{{ url_for('static', filename='js/registerjs') }}"></script>-->
 <script>
     function submitForm() {
+
         let form = document.getElementById("userForm");
         let formData = new FormData(form);
 
+        let username = document.querySelector('.username');
         let password = formData.get('password');
         let confirmPassword = formData.get('password-2');
+        let strongPassword = false;
 
-        if(password === confirmPassword){
-        fetch('/create_user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(Object.fromEntries(formData)),
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert('Registered Successfully!');
-            form.reset();
-console.log(data);
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            // Handle errors
-        });
-    }
+        function isStrongPassword(password) {
+            // Password must contain at least one number or symbol and be at least 6 characters long
+            return /^(?=.*[\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{6,}$/.test(password);
+        }
+
+        if(password === confirmPassword && password !== '' && isStrongPassword(password)){
+            fetch('/create_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData)),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Registration Successful: Congratulations! You have successfully registered.');
+                form.reset();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }else if(password !== confirmPassword){
+        
+            document.querySelector('.password-2').classList.add('error-input');
+            document.querySelector('.mismatch').style.display ="block";
+
+        }else if(password === '' && username.value === '' ){
+            alert("All Fields Required: Please enter a username and password.");
+        }else if(password === '' ){
+            alert("Password Required: Please enter a password.");
+        } else {
+            document.querySelector('.password').classList.add('error-input');
+            document.querySelector('.weak-password').style.display ="block";
+        }
 }
+
+const burgerMenu = document.querySelector('.burger-menu');
+        const mobileNav = document.querySelector('.mobile-nav');
+        const closeButton = document.querySelector('.close-button');
+
+        burgerMenu.addEventListener('click', function () {
+           mobileNav.classList.add('appear');
+           document.body.style.overflowY = 'hidden';
+          });
+
+        closeButton.addEventListener('click', function () {
+            mobileNav.classList.remove('appear');
+            document.body.style.overflowY = '';
+          });
 </script>
 </body>
 
