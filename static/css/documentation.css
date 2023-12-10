@@ -177,7 +177,6 @@ section .content {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    min-height: 100svh;
     padding: 20px 0;
     flex-direction: column;
     height: auto;
@@ -278,6 +277,26 @@ section .content {
     background-color: #7b7b7bb9;
 }
 
+.first p {
+    font-weight: 500;
+    font-size: .9rem;
+    margin-top: 5px;
+}
+
+.card-note {
+    width: 100%;
+    padding: 15px 10px;
+    border-radius: 5px;
+    background-color: #dfdfdf;
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 5px;
+}
+.card-note img {
+    width: 35px;
+}
 
 
 
