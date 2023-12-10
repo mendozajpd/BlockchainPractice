@@ -6,6 +6,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import datetime, timedelta
+import json
 
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
@@ -85,20 +86,14 @@ def init_db():
             )
         ''')
 
-        # Create Logs table
-        cursor.execute('''
+        # Create logs table
+        cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS logs
-            (
-                log_id INTEGER PRIMARY KEY,
-                user_id INTEGER,
-                action TEXT,
-                blockchain_id INTEGER,
-                timestamp TIMESTAMP,
-                hash TEXT,
-                previous_hash TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (blockchain_id) REFERENCES blockchains(blockchain_id)
-            )
+            (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+             hash TEXT,
+             previous_hash TEXT,
+             data TEXT,
+             reference TEXT)
         ''')
 
         # Check if the admin user already exists
@@ -172,23 +167,27 @@ def verify_blockchain_integrity(blockchain_name):
         ''', (formatted_timestamp, blockchain_name))
 
         conn.commit()
-
+        print('Blockchain integrity verified')
         return {'message': 'Blockchain integrity verified'}
     except Exception as e:
+        print('Blockchain compromised')
         return {'error': f'Failed to verify blockchain integrity: {str(e)}'}
     finally:
         conn.close()
 
 # Create Genesis Block
-def create_genesis_block(blockchain_name):
+def create_genesis_block(blockchain_name, msg):
     conn, cursor = open_database(DATABASE)
     genesis_hash = hash_data("Genesis Block")
+
+    if msg == "":
+        msg = "The Heavens and the Earth."
 
     try:
         cursor.execute(f'''
             INSERT INTO {blockchain_name} (hash, previous_hash, data, reference)
             VALUES (?, ?, ?, ?)
-        ''', (genesis_hash, "0", "The Heavens and the Earth.", "Genesis"))
+        ''', (genesis_hash, "0", msg, "Genesis"))
 
         conn.commit()
         return jsonify({'message': f'Genesis block created for "{blockchain_name}"'}), 201
@@ -239,7 +238,7 @@ def get_latest_hash_by_max_id(blockchain_name):
         conn.close()
 
 # Delete Blockchain
-def delete_blockchain(blockchain_name, blockchain_orig_name):
+def delete_blockchain(blockchain_name, blockchain_orig_name, apikey):
     conn, cursor = open_database(DATABASE)
 
     try:
@@ -256,12 +255,14 @@ def delete_blockchain(blockchain_name, blockchain_orig_name):
         # Delete the blockchain entry from the blockchains table
         cursor.execute('DELETE FROM blockchains WHERE blockchain_name = ?', (blockchain_orig_name,))
 
+
         conn.commit()
         return jsonify({'message': f'Blockchain "{blockchain_orig_name}" deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': f'Failed to delete blockchain: {str(e)}'}), 500
     finally:
         conn.close()
+        log_route_call(g.user_id, '/delete_blockchain', apikey)
 
 # SEARCH THE BLOCKCHAIN
 def search_blockchain(blockchain_name, criteria, value):
@@ -426,6 +427,38 @@ def validate_api_key():
         return jsonify({'error': 'UNAUTHORIZED: Invalid API Key'}), 401
     else:
         return None
+
+def get_user_id_by_api_key(api_key):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the provided API key exists
+        cursor.execute('SELECT user_id FROM api_keys WHERE api_key = ?', (api_key,))
+        result = cursor.fetchone()
+
+        # If the result is not None, return the user_id
+        return result[0] if result else None
+    except Exception as e:
+        print(f'Error: {str(e)}')
+        return None
+    finally:
+        conn.close()
+
+def get_apiname_by_api_key(api_key):
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        # Check if the provided API key exists
+        cursor.execute('SELECT api_name FROM api_keys WHERE api_key = ?', (api_key,))
+        result = cursor.fetchone()
+
+        # If the result is not None, return the user_id
+        return result[0] if result else None
+    except Exception as e:
+        print(f'Error: {str(e)}')
+        return None
+    finally:
+        conn.close()
 
 # User Handling Related
 # Function to get user's current password from the database
@@ -596,6 +629,50 @@ def update_blockchain_timestamp(conn, cursor, blockchain_name):
     except Exception as e:
         print(f'Error updating timestamp: {str(e)}')
 
+# Audit
+# Function to log route calls
+def log_route_call(user_id, route, api_key):
+    verify_blockchain_integrity('logs')
+    try:
+        conn, cursor = open_database(DATABASE)
+
+        blockchain_name = 'logs'
+        api_name = get_apiname_by_api_key(api_key)
+
+        # Create logs table if not exists
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS logs
+            (id INTEGER PRIMARY KEY AUTOINCREMENT,
+             hash TEXT,
+             previous_hash TEXT,
+             data TEXT,
+             reference TEXT)
+        ''')
+
+        # Check if the logs table already has data
+        cursor.execute('SELECT COUNT(*) FROM logs')
+        logs_count = cursor.fetchone()[0]
+        if logs_count == 0:
+            create_genesis_block("logs","{api_name} : {route} : {timestamp} reference: user_id")
+
+        # Generate a hash for the log entry
+        timestamp = formatted_timestamp  # Renamed the variable to avoid collision
+        log_data = f'{api_name} : {route} : {timestamp}'
+        hash_value = hash_data(log_data + get_latest_hash_by_max_id(blockchain_name))
+
+        # Get the latest hash from the logs blockchain
+        latest_hash = get_latest_hash_by_max_id(blockchain_name)
+
+        # Insert the log entry into the logs table
+        cursor.execute('INSERT INTO logs (hash, previous_hash, data, reference) VALUES (?, ?, ?, ?)',
+                       (hash_value, latest_hash, log_data, user_id))
+
+        conn.commit()
+    except Exception as e:
+        print(f'Error logging route call: {str(e)}')
+    finally:
+        conn.close()
+
 # Select Blockchain
 @app.route('/select_blockchain', methods=['POST'])
 def select_blockchain():
@@ -623,6 +700,12 @@ def create_blockchain():
     if not g.logged_in:
         return jsonify({'error': 'User must log in to create a blockchain'}), 401
 
+    # API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
     data = request.get_json()
     blockchain_name = data['blockchain_name']
     is_public = data['is_public']
@@ -630,6 +713,7 @@ def create_blockchain():
     user_id = g.user_id
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" +str(user_id)
+    apikey = data.get('apikey')
 
     if is_public is None:
         return jsonify({'error': 'The "is_public" field is required for blockchain creation'}), 400
@@ -663,7 +747,9 @@ def create_blockchain():
 
         conn.commit()
 
-        create_genesis_block(blockchain_name)
+        create_genesis_block(blockchain_name, "")
+        log_route_call(user_id, "/create_blockchain", str(apikey))
+
 
         return jsonify({'message': f'Blockchain "{blockchain_orig_name}" created successfully'}), 201
     except Exception as e:
@@ -671,18 +757,24 @@ def create_blockchain():
     finally:
         conn.close()
 
-
 # Delete Blockchain Endpoint
 @app.route('/delete_blockchain', methods=['DELETE'])
 def delete_blockchain_endpoint():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to delete a blockchain'}), 401
+
+    # API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -692,7 +784,7 @@ def delete_blockchain_endpoint():
     if not blockchain_name:
         return jsonify({'error': 'Blockchain name is required'}), 400
 
-    return delete_blockchain(blockchain_name, blockchain_orig_name)
+    return delete_blockchain(blockchain_name, blockchain_orig_name, api_key)
 
 
 # Store Hashed Data in Blockchain
@@ -702,6 +794,7 @@ def store_in_blockchain_hashed():
     blockchain_name = data['blockchain_name']
     data_to_store = data['data']
     reference = data['reference']
+    api_key = data.get('apikey')
 
     #API CHECK
     validation_result = validate_api_key()
@@ -714,9 +807,6 @@ def store_in_blockchain_hashed():
 
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to store data in blockchain'}), 401
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -735,6 +825,8 @@ def store_in_blockchain_hashed():
     hashed_data = hash_data(data_to_store + latest_hash)
     hashed = hash_data(hashed_data + latest_hash)
 
+    log_route_call(g.user_id,'/store_in_blockchain_hashed',api_key)
+
     conn, cursor = open_database(DATABASE)
 
     try:
@@ -752,7 +844,6 @@ def store_in_blockchain_hashed():
     finally:
         conn.close()
 
-
 # Store Data in Blockchain
 @app.route('/store_in_blockchain', methods=['POST'])
 def store_in_blockchain():
@@ -760,6 +851,7 @@ def store_in_blockchain():
     blockchain_name = data['blockchain_name']
     data_to_store = data['data']
     reference = data['reference']
+    api_key = data.get('apikey')
 
     #API CHECK
     validation_result = validate_api_key()
@@ -790,6 +882,8 @@ def store_in_blockchain():
     latest_hash = get_latest_hash_by_max_id(blockchain_name)
     block_hash = hash_data(data_to_store + latest_hash)
 
+    log_route_call(g.user_id,'/store_in_blockchain',api_key)
+
     conn, cursor = open_database(DATABASE)
 
     try:
@@ -813,6 +907,7 @@ def delete_reference_by_id():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
     block_id = data['block_id']
+    api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -830,9 +925,10 @@ def delete_reference_by_id():
     if validation_result:
         return validation_result
 
-
     if not blockchain_name or not block_id:
         return jsonify({'error': 'Blockchain name and block ID are required'}), 400
+
+    log_route_call(g.user_id,'/delete_reference_by_id',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -874,6 +970,8 @@ def delete_reference_by_criteria():
     blockchain_name = data['blockchain_name']
     criteria = data['criteria']
     value = data['value']
+    api_key = data.get('apikey')
+
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -894,6 +992,8 @@ def delete_reference_by_criteria():
 
     if not blockchain_name or not criteria or not value:
         return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
+
+    log_route_call(g.user_id,'/delete_reference_by_criteria',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -935,6 +1035,8 @@ def update_block_by_id():
     blockchain_name = data['blockchain_name']
     block_id = data['block_id']
     new_data = data['new_data']
+    api_key = data.get('apikey')
+
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -954,6 +1056,8 @@ def update_block_by_id():
 
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
+
+    log_route_call(g.user_id,'/update_block_by_id',api_key)
 
     conn, cursor = open_database(DATABASE)
     block = None  # Define block outside the try block
@@ -1008,6 +1112,7 @@ def update_block_by_criteria():
     criteria = data['criteria']
     value = data['value']
     new_data = data['new_data']
+    api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -1027,6 +1132,8 @@ def update_block_by_criteria():
 
     if not blockchain_name or not criteria or not value or not new_data:
         return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
+
+    log_route_call(g.user_id,'/update_block_by_criteria',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -1084,6 +1191,8 @@ def update_block_by_id_as_hash():
     blockchain_name = data['blockchain_name']
     block_id = data['block_id']
     new_data = data['new_data']
+    api_key = data.get('apikey')
+
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -1105,6 +1214,8 @@ def update_block_by_id_as_hash():
 
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
+
+    log_route_call(g.user_id,'/update_block_by_id_as_hash',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -1160,6 +1271,8 @@ def update_block_by_criteria_as_hash():
     criteria = data['criteria']
     value = data['value']
     new_data = data['new_data']
+    api_key = data.get('apikey')
+
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -1179,6 +1292,8 @@ def update_block_by_criteria_as_hash():
 
     if not blockchain_name or not criteria or not value or not new_data:
         return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
+
+    log_route_call(g.user_id,'/update_block_by_criteria_as_hash',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -1236,6 +1351,8 @@ def search_blockchain_endpoint():
     blockchain_name = data['blockchain_name']
     criteria = data['criteria']
     value = data['value']
+    api_key = data.get('apikey')
+
 
     # API CHECK
     validation_result = validate_api_key()
@@ -1273,6 +1390,8 @@ def search_blockchain_endpoint():
 
     # Check if the specified criteria is a valid column name
     is_valid_criteria(blockchain_name, criteria)
+
+    log_route_call(g.user_id,'/search_in_blockchain',api_key)
 
     results = search_blockchain(blockchain_name, criteria, value)
     update_last_used_timestamp()
@@ -1314,9 +1433,13 @@ def get_element_by_index():
 
     data = request.get_json()
     index = data.get('index')
+    api_key = data.get('apikey')
 
     if index is None:
         return jsonify({'result': 'Please provide an index.'})
+
+    log_route_call(g.user_id,'/get_element_by_index',api_key)
+
 
     try:
         index = int(index)
@@ -1345,6 +1468,9 @@ def clear_search_result():
 # List Blockchains
 @app.route('/list_blockchains', methods=['GET'])
 def list_blockchains():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
     if not g.logged_in:
         return jsonify({'error': 'User must log in to list the blockchains'}), 401
 
@@ -1353,6 +1479,8 @@ def list_blockchains():
 
     if validation_result:
         return validation_result
+
+    log_route_call(g.user_id,'/list_blockchains',api_key)
 
     conn, cursor = open_database(DATABASE)
     try:
@@ -1371,6 +1499,7 @@ def list_blockchains():
 def list_references():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
@@ -1391,6 +1520,8 @@ def list_references():
     if not blockchain_name:
         return jsonify({'error': 'Blockchain name is required'}), 400
 
+    log_route_call(g.user_id,'/list_references',api_key)
+
     conn, cursor = open_database(DATABASE)
 
     try:
@@ -1410,14 +1541,50 @@ def list_references():
     finally:
         conn.close()
 
+# Display Logs
+@app.route('/display_logs', methods=['GET'])
+def display_logs():
+    data = request.get_json()
+    blockchain_name = 'logs'
+    api_key = data.get('apikey')
+
+    blockchain_orig_name = blockchain_name
+    blockchain_name = blockchain_name
+
+    if not blockchain_name:
+        return jsonify({'error': 'Blockchain name is required'}), 400
+
+    log_route_call(g.user_id, '/display_logs', api_key)
+
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        cursor.execute(f'''
+            SELECT data, reference
+            FROM logs
+            WHERE reference IS NOT NULL AND id > 1
+        ''')
+        log_entries = [{'data': row[0], 'reference': row[1]} for row in cursor.fetchall()]
+
+        if log_entries:
+            return jsonify({'log_entries': log_entries}), 200
+        else:
+            return jsonify({'message': f'No log entries with references found for {blockchain_orig_name}'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Failed to display logs: {str(e)}'}), 500
+    finally:
+        conn.close()
+
 # Verify Blockchain
 @app.route('/verify_blockchain', methods=['GET'])
 def verify_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
+
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to verify a blockchain'}), 401
@@ -1432,6 +1599,7 @@ def verify_blockchain():
 
         return verify_blockchain_integrity(blockchain_name)
 
+
     else:
         # Check if the user owns the specified blockchain
         if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -1443,6 +1611,8 @@ def verify_blockchain():
         if validation_result:
             return validation_result
 
+        log_route_call(g.user_id, '/verify_blockchain', api_key)
+
         return verify_blockchain_integrity(blockchain_name)
 
 
@@ -1453,6 +1623,7 @@ def create_user():
     username = data['username']
     password = data['password']
     is_admin = data.get('is_admin', 0)  # Default to False if not provided
+    api_key = data.get('apikey')
 
     # Check if the requester is logged in and is an admin
     if not g.logged_in or not g.is_admin:
@@ -1464,6 +1635,8 @@ def create_user():
 
     # Hash the password before storing it in the database
     hashed_password = hash_data(password)
+
+    log_route_call(g.user_id,'/create_user',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -1530,6 +1703,7 @@ def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    apikey = data.get('apikey')
 
     # Check if the username and password are valid (replace this with your authentication logic)
     if is_valid_login(username, password):
@@ -1549,6 +1723,7 @@ def login():
         else:
             user_type = "USER"
 
+        log_route_call(str(user_id), "/login", str(apikey))
         return jsonify({'message': 'Login successful','is_admin': user_type}), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
@@ -1557,6 +1732,11 @@ def login():
 def logout():
     # Check if the user is logged in before attempting to logout
     if session.get('logged_in'):
+        data = request.get_json()
+        apikey = data.get('apikey')
+        user_id = g.user_id
+        log_route_call(user_id, "/logout", str(apikey))
+
         # Clear the session
         session.clear()
         return jsonify({'message': 'Logout successful'}), 200
@@ -1568,6 +1748,7 @@ def logout():
 def change_name():
     data = request.get_json()
     new_username = data.get('new_username')
+    api_key = data.get('apikey')
 
     # Check if the user is logged in
     if not session.get('logged_in'):
@@ -1591,12 +1772,16 @@ def change_name():
     change_username(g.user_id, new_username)
     session['username'] = new_username
 
+    log_route_call(g.user_id,'/change_username',api_key)
+
+
     return jsonify({'message': 'Username changed successfully'}), 200
 
 @app.route('/change_password', methods=['POST'])
 def change_password_endpoint():
     data = request.get_json()
     new_password = data.get('new_password')
+    api_key = data.get('apikey')
 
     # Check if the user is logged in
     if not session.get('logged_in'):
@@ -1619,12 +1804,18 @@ def change_password_endpoint():
     # Call the function to change the password in the database
     change_password(g.user_id, new_password)
 
+    log_route_call(g.user_id,'/change_password',api_key)
+
+
     return jsonify({'message': 'Password changed successfully'}), 200
 
 # USER
 # Endpoint to delete user account
 @app.route('/delete_account', methods=['DELETE'])
 def delete_account():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
     # Check if the user is logged in
     if not session.get('logged_in'):
         return jsonify({'error': 'User must log in to delete their account'}), 401
@@ -1636,6 +1827,8 @@ def delete_account():
 
     if user_id is None:
         return jsonify({'error': 'User not found'}), 404
+
+    log_route_call(g.user_id,'/delete_account',api_key)
 
     # Delete user account and associated data
     delete_user_account(user_id)
@@ -1660,6 +1853,7 @@ def admin_change_username():
     data = request.get_json()
     user_id = data.get('user_id')
     new_username = data.get('new_username')
+    api_key = data.get('apikey')
 
     # Check if user_id and new_username are provided
     if not user_id or not new_username:
@@ -1668,6 +1862,8 @@ def admin_change_username():
     # Check if the new_username already exists
     if is_username_taken(new_username):
         return jsonify({'error': 'Username already exists'}), 400
+
+    log_route_call(g.user_id,'/admin_change_username',api_key)
 
     # Call the function to change the username in the database
     change_username(user_id, new_username)
@@ -1684,6 +1880,7 @@ def admin_change_password():
     data = request.get_json()
     user_id = data.get('user_id')
     new_password = data.get('new_password')
+    api_key = data.get('apikey')
 
     # Check if user_id and new_password are provided
     if not user_id or not new_password:
@@ -1693,6 +1890,8 @@ def admin_change_password():
     if not is_valid_password(new_password):
         return jsonify({'error': 'Invalid password. It must have at least 6 characters and contain a number or a symbol'}), 400
 
+    log_route_call(g.user_id,'/admin_change_password',api_key)
+
     # Call the function to change the password in the database
     change_password(user_id, new_password)
 
@@ -1701,9 +1900,14 @@ def admin_change_password():
 # List Users
 @app.route('/admin_list_users', methods=['GET'])
 def list_users():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
     # Check if the requester is logged in and is an admin
     if not g.logged_in or not g.is_admin:
         return jsonify({'error': 'UNAUTHORIZED: Admin privileges required.'}), 401
+
+    log_route_call(g.user_id,'/admin_list_users',api_key)
 
     conn, cursor = open_database(DATABASE)
     try:
@@ -1725,6 +1929,7 @@ def admin_delete_account():
 
     data = request.get_json()
     user_id_to_delete = data.get('user_id')
+    api_key = data.get('apikey')
 
     # Check if user_id is provided
     if not user_id_to_delete:
@@ -1744,11 +1949,12 @@ def admin_delete_account():
     if is_admin_user(user_id_to_delete) :
         return jsonify({'error': 'Admin accounts cannot be deleted by other admins'}), 403
 
+    log_route_call(g.user_id,'/admin_delete_account',api_key)
+
     # Delete the specified user account and associated data
     delete_user_account(user_id_to_delete)
 
     return jsonify({'message': f'User account with ID {user_id_to_delete} deleted successfully'}), 200
-
 
 # Admin Endpoint to list blockchains of a specific user
 @app.route('/admin_list_blockchains_of_user', methods=['GET'])
@@ -1760,10 +1966,14 @@ def admin_list_blockchains_of_user():
     # Get user_id from the request
     data = request.get_json()
     user_id_to_list = data.get('user_id')
+    api_key = data.get('apikey')
+
 
     # Check if user_id is provided
     if not user_id_to_list:
         return jsonify({'error': 'User ID is required'}), 400
+
+    log_route_call(g.user_id,'/admin_list_blockchains_of_user',api_key)
 
     conn, cursor = open_database(DATABASE)
 
@@ -1788,6 +1998,9 @@ def admin_list_blockchains_of_user():
 # API
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
+    data = request.get_json()
+    apikey = data.get('apikey')
+
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
         return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
@@ -1804,6 +2017,8 @@ def generate_api_key():
 
     # Get the API name from the request or use the default "Secret Key" if it's empty
     api_name = request.get_json().get('api_name')
+
+    log_route_call(g.user_id,'/generate_api_key',apikey)
 
     # Add the API key to the APIKeys table
     conn, cursor = open_database(DATABASE)
@@ -1828,6 +2043,9 @@ def generate_api_key():
 # Display All API Keys for the Logged-in User
 @app.route('/display_api_keys', methods=['GET'])
 def display_api_keys():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
         return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
@@ -1838,6 +2056,8 @@ def display_api_keys():
 
     if user_id is None:
         return jsonify({'error': 'User not found'}), 404
+
+    log_route_call(g.user_id,'/display_api_keys',api_key)
 
     # Fetch all API keys associated with the user from the database
     conn, cursor = open_database(DATABASE)
@@ -1860,6 +2080,9 @@ def display_api_keys():
 # Revoke API Key by API Name
 @app.route('/revoke_api_key', methods=['POST'])
 def revoke_api_key():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
     # Check if the user is logged in
     if not g.logged_in or not session.get('username'):
         return jsonify({'error': 'You must be logged in to access this resource. Please log in and try again.'}), 401
@@ -1876,6 +2099,8 @@ def revoke_api_key():
 
     if not api_name_to_revoke:
         return jsonify({'error': 'API name is required'}), 400
+
+    log_route_call(g.user_id,'/revoke_api_key',apikey)
 
     # Revoke the API key for the specified API name
     conn, cursor = open_database(DATABASE)

@@ -71,14 +71,14 @@ document.getElementById('downloadButton').addEventListener('click', function() {
 
 function downloadImage() {
     // File path of the exe file.
-    let fileUrl = '{{ url_for("static", filename="dist/blockchain_cmd.exe") }}';
+    let fileUrl = '{{ url_for("static", filename="dist/BSS.exe") }}';
 
     // Create a temporary link element
     let link = document.createElement('a');
     link.href = fileUrl;
 
     // Specify the name for the downloaded file (optional)
-    link.download = 'blockchain_cmd.exe';
+    link.download = 'BSS.exe';
 
     // Append the link to the body
     document.body.appendChild(link);

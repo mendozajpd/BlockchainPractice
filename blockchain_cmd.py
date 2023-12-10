@@ -315,7 +315,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
             'is_public': args.is_public,
-            'blockchain_password': args.blockchain_password
+            'blockchain_password': args.blockchain_password,
+            'apikey': api_key
         })
 
         headers = {
@@ -341,7 +342,6 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         delete_blockchain -bn <blockchain_name>
         """
-        api_key = self.api_key
         server_url = self.server_url
 
         url = f'{server_url}/delete_blockchain'
@@ -353,13 +353,14 @@ class BlockchainCmd(cmd2.Cmd):
             return
 
         payload = json.dumps({
-            'blockchain_name': args.blockchain_name
+            'blockchain_name': args.blockchain_name,
+            'apikey': self.api_key
         })
 
         headers = {
             'Content-Type': 'application/json',
             'Cookie': self.session_cookie,
-            'apikey': api_key
+            'apikey': self.api_key
         }
 
         try:
@@ -394,7 +395,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
             'data': args.data,
-            'reference': args.reference
+            'reference': args.reference,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -437,7 +439,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
             'data': args.data,
-            'reference': args.reference
+            'reference': args.reference,
+            'apikey' : self.api_key
         })
 
         headers = {
@@ -469,7 +472,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
             'criteria': args.criteria,
-            'value': args.value
+            'value': args.value,
+            'apikey' : self.api_key
         })
 
         headers = {
@@ -509,6 +513,10 @@ class BlockchainCmd(cmd2.Cmd):
         """
         api_key = self.api_key
         url = f'{self.server_url}/display_search_results'
+
+        payload = json.dumps({
+            'apikey': self.api_key
+        })
 
         headers = {
             'Content-Type': 'application/json',
@@ -568,6 +576,10 @@ class BlockchainCmd(cmd2.Cmd):
             'index': args.index
         }
 
+        payload = json.dumps({
+            'apikey': self.api_key
+        })
+
         headers = {
             'Content-Type': 'application/json',
             'Cookie': self.session_cookie,
@@ -598,8 +610,10 @@ class BlockchainCmd(cmd2.Cmd):
             args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
-            "blockchain_name": args.blockchain_name
+            "blockchain_name": args.blockchain_name,
+            'apikey': self.api_key
         })
+
 
         headers = {
             'Content-Type': 'application/json',
@@ -648,7 +662,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
             "block_id": args.block_id,
-            "new_data": args.new_data
+            "new_data": args.new_data,
+            'apikey': self.api_key
         })
 
         try:
@@ -690,7 +705,8 @@ class BlockchainCmd(cmd2.Cmd):
             'blockchain_name': args.blockchain_name,
             'criteria': args.criteria,
             'value': args.value,
-            'new_data': args.new_data
+            'new_data': args.new_data,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -737,7 +753,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
             "block_id": args.block_id,
-            "new_data": args.new_data
+            "new_data": args.new_data,
+            'apikey': self.api_key
         })
 
         try:
@@ -788,7 +805,8 @@ class BlockchainCmd(cmd2.Cmd):
             "blockchain_name": args.blockchain_name,
             "criteria": args.criteria,
             "value": args.value,
-            "new_data": args.new_data
+            "new_data": args.new_data,
+            'apikey': self.api_key
         })
 
         try:
@@ -828,7 +846,8 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
-            'block_id': args.block_id
+            'block_id': args.block_id,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -875,7 +894,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
             "criteria": args.criteria,
-            "value": args.value
+            "value": args.value,
+            'apikey': self.api_key,
         })
 
         try:
@@ -909,6 +929,10 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/list_blockchains'
+
+        payload = json.dumps({
+            'apikey': self.api_key,
+        })
 
         headers = {
             'apikey': api_key,
@@ -950,7 +974,8 @@ class BlockchainCmd(cmd2.Cmd):
             args.blockchain_name = self.selected_blockchain
 
         payload = json.dumps({
-            'blockchain_name': args.blockchain_name
+            'blockchain_name': args.blockchain_name,
+            'apikey': self.api_key,
         })
 
         headers = {
@@ -984,6 +1009,50 @@ class BlockchainCmd(cmd2.Cmd):
             print(return_error(response.text))
             print()
 
+    def do_display_logs(self, args):
+        """
+        Displays the logs.
+
+        Usage:
+        display_logs
+        """
+        api_key = self.api_key
+        server_url = self.server_url
+
+        url = f'{server_url}/display_logs'
+
+        payload = json.dumps({
+            'apikey': self.api_key,
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers, data=payload)
+            if response.status_code == 200:
+                log_entries = response.json().get('log_entries', [])  # Corrected field name
+
+                if log_entries:
+                    print("Log Entries:")
+                    for index, entry in enumerate(log_entries, start=1):
+                        print(f"- Log {index}: {entry['data']}, UserID: {entry['reference']}")
+                else:
+                    print("No log entries found.")
+            elif response.status_code == 404:
+                print(return_error(response.text))
+                print()
+            else:
+                response.raise_for_status()
+
+            print()
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
     @cmd2.with_argparser(address_parser)
     def do_set_add(self, args):
         print()
@@ -1004,7 +1073,6 @@ class BlockchainCmd(cmd2.Cmd):
 
     @cmd2.with_argparser(key_parser)
     def do_set_key(self, args):
-        print()
         """
         Changes the key of the API
 
@@ -1079,7 +1147,8 @@ class BlockchainCmd(cmd2.Cmd):
         payload = {
             'username': args.username,
             'password': args.password,
-            'is_admin': args.is_admin
+            'is_admin': args.is_admin,
+            'apikey': self.api_key,
         }
 
         headers = {
@@ -1115,7 +1184,8 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'username': args.username,
-            'password': args.password
+            'password': args.password,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -1151,12 +1221,13 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'username': args.username,
-            'password': args.password
+            'password': args.password,
+            'apikey': self.api_key
         })
 
         headers = {
             'Content-Type': 'application/json',
-            'Cookie': self.session_cookie
+            'Cookie': self.session_cookie,
         }
 
         try:
@@ -1202,8 +1273,12 @@ class BlockchainCmd(cmd2.Cmd):
         """
         url = f'{self.server_url}/logout'
 
-        payload = ""
+        payload = json.dumps({
+            'apikey': self.api_key
+        })
+
         headers = {
+            'Content-Type': 'application/json',
             'Cookie' : self.session_cookie
         }
 
@@ -1235,7 +1310,8 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{self.server_url}/change_username'
 
         payload = {
-            "new_username": args.new_username
+            "new_username": args.new_username,
+            'apikey': self.api_key,
         }
 
         headers = {
@@ -1280,7 +1356,8 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{self.server_url}/change_password'
 
         payload = {
-            'new_password': args.new_password
+            'new_password': args.new_password,
+            'apikey': self.api_key,
         }
 
         headers = {
@@ -1308,7 +1385,9 @@ class BlockchainCmd(cmd2.Cmd):
         """
         url = f'{self.server_url}/delete_account'
 
-        payload = {}
+        payload = {
+            'apikey': self.api_key,
+        }
         headers = {
             'Cookie' : self.session_cookie
         }
@@ -1342,8 +1421,10 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{self.server_url}/admin_delete_account'
 
         payload = {
-            'user_id': args.user_id
+            'user_id': args.user_id,
+            'apikey': self.api_key,
         }
+
         headers = {
             'Content-Type': 'application/json',
             'Cookie': self.session_cookie
@@ -1392,7 +1473,9 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = {
             'user_id': args.user_id,
-            'new_username': args.new_username
+            'new_username': args.new_username,
+            'apikey': self.api_key,
+
         }
 
         headers = {
@@ -1423,7 +1506,8 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             "user_id": args.user_id,
-            "new_password": args.new_password
+            "new_password": args.new_password,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -1451,7 +1535,8 @@ class BlockchainCmd(cmd2.Cmd):
         """
         url = f'{self.server_url}/admin_list_blockchains_of_user'
         payload = json.dumps({
-            "user_id": args.user_id
+            "user_id": args.user_id,
+            'apikey': self.api_key
         })
 
         headers = {
@@ -1479,7 +1564,9 @@ class BlockchainCmd(cmd2.Cmd):
         """
         url = f'{self.server_url}/admin_list_users'
 
-        payload = ""
+        payload = json.dumps({
+            'apikey': self.api_key
+        })
 
         headers = {
             'Content-Type': 'application/json',
@@ -1516,7 +1603,8 @@ class BlockchainCmd(cmd2.Cmd):
         }
 
         payload = json.dumps({
-            "api_name": args.api_name
+            "api_name": args.api_name,
+            'apikey': self.api_key
         })
 
         try:
@@ -1545,7 +1633,10 @@ class BlockchainCmd(cmd2.Cmd):
         """
         url = f'{self.server_url}/display_api_keys'
 
-        payload = ""
+        payload = json.dumps({
+            'apikey': self.api_key
+        })
+
         headers = {
             'Cookie': self.session_cookie
         }
@@ -1570,7 +1661,8 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{self.server_url}/revoke_api_key'
 
         payload = json.dumps({
-            "api_name": args.api_name
+            "api_name": args.api_name,
+            'apikey': self.api_key
         })
         headers = {
             'Content-Type': 'application/json',
