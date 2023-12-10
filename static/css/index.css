@@ -103,7 +103,7 @@ header .header-text {
 
 header .header-text h1 {
     font-size: 3.5rem;
-    z-index: 2
+    z-index: 2;
 }
 
 
@@ -116,7 +116,8 @@ header .header-text .info {
     font-size: .8rem;
     width: 90%;
     margin-top: 1rem;
-    z-index: 2
+    z-index: 2;
+    line-height: 20px;
 }
 
 header .header-text span {

@@ -94,6 +94,8 @@
             .then(response => response.json())
             .then(data => {
                 alert('Registration Successful: Congratulations! You have successfully registered.');
+                document.querySelector('.password-2').classList.remove('error-input');
+                document.querySelector('.mismatch').style.display ="none";
                 form.reset();
             })
             .catch((error) => {
