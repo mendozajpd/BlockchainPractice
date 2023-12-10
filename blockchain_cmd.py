@@ -282,6 +282,7 @@ class BlockchainCmd(cmd2.Cmd):
     def do_deselect(self, args):
         if self.username == "" :
             print("User must log in to deselect a blockchain")
+            print()
         else:
             if self.selected_blockchain == "":
                 print("No blockchains currently selected.")
