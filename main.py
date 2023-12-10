@@ -631,6 +631,7 @@ def create_blockchain():
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" +str(user_id)
 
+
     # Create the database if it doesn't exist
     init_db()
 
@@ -673,7 +674,7 @@ def delete_blockchain_endpoint():
     blockchain_name = data['blockchain_name']
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to delete a blockchain'}), 401
@@ -749,6 +750,9 @@ def store_in_blockchain():
     blockchain_name = data['blockchain_name']
     data_to_store = data['data']
     reference = data['reference']
+
+    if blockchain_name == "":
+        return jsonify({'error': 'No Blockchain selected/provided'}), 400
 
     blockchain_orig_name = blockchain_name
     blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
@@ -1278,7 +1282,10 @@ def search_blockchain_endpoint():
 # SEARCH RESULT
 @app.route('/display_search_results', methods=['GET'])
 def get_search_result():
-    return jsonify({'result': search_result})
+    if not search_result:
+        return jsonify({'result': 'Search Results are Empty'})
+    else:
+        return jsonify({'result': search_result})
 
 # GET ELEMENT FROM RESULT
 @app.route('/get_search_index', methods=['GET'])
@@ -1287,6 +1294,9 @@ def get_element_by_index():
 
     data = request.get_json()
     index = data.get('index')
+
+    if index is None:
+        return jsonify({'result': 'Please provide an index.'})
 
     try:
         index = int(index)
@@ -1310,7 +1320,7 @@ def clear_search_result():
         search_result.clear()
         return jsonify({'message': 'Cleared search results.'})
     else:
-        return jsonify({'error': 'Search results are empty.'})
+        return jsonify({'message': 'Search results are empty.'})
 
 # List Blockchains
 @app.route('/list_blockchains', methods=['GET'])
@@ -1773,7 +1783,7 @@ def generate_api_key():
         return jsonify({'error': 'User not found'}), 404
 
     # Get the API name from the request or use the default "Secret Key" if it's empty
-    api_name = request.get_json().get('api_name') or 'Secret Key'
+    api_name = request.get_json().get('api_name')
 
     # Add the API key to the APIKeys table
     conn, cursor = open_database(DATABASE)

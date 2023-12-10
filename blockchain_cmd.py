@@ -190,7 +190,7 @@ class BlockchainCmd(cmd2.Cmd):
 
     # Delete Accounts
     admin_delete_account_parser = Cmd2ArgumentParser()
-    admin_delete_account_parser.add_argument('user_id')
+    admin_delete_account_parser.add_argument('-id','--user_id')
 
     # Admin Change Usernames
     admin_change_username_parser = Cmd2ArgumentParser()
@@ -504,6 +504,34 @@ class BlockchainCmd(cmd2.Cmd):
             print(return_error(response.text))
             print()
 
+    def do_clear_search_results(self, args):
+        """
+        Clear search results.
+
+        Usage:
+        clear_search_results
+        """
+        api_key = self.api_key
+        url = f'{self.server_url}/clear_search_result'
+
+        payload = ""
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': api_key
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            print(return_message(response.text))
+            print()
+
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
     @cmd2.with_argparser(get_search_index_parser)
     def do_get_search_index(self, args):
         """
@@ -565,7 +593,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(return_error(response.text))
-            print(response.text)
+            print()
 
     @cmd2.with_argparser(update_block_by_id_parser)
     def do_update_by_id(self, args):
@@ -1218,7 +1246,7 @@ class BlockchainCmd(cmd2.Cmd):
         """
         Change the password for the logged-in user.
 
-        Usage:
+        Usage:1
         change_password -p <new_password>
         """
         url = f'{self.server_url}/change_password'
@@ -1265,6 +1293,11 @@ class BlockchainCmd(cmd2.Cmd):
 
             # Clear the session cookie
             self.session_cookie = ""
+
+            self.username = ""
+            self.user_type = ""
+            self.update_prompt()
+
         except requests.RequestException as e:
             print(return_error(response.text))
             print()
@@ -1309,6 +1342,10 @@ class BlockchainCmd(cmd2.Cmd):
                         break
 
             self.session_cookie = "session=" + session_value
+
+            self.username = ""
+            self.user_type = ""
+            self.update_prompt()
 
         except requests.RequestException as e:
             print(return_error(response.text))
@@ -1440,13 +1477,10 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         apikey_gen -n <api_name>
         """
-        if not args.api_name:
-            print("Error: API name cannot be empty.")
-            print("Usage: generate_key_with_name -n <api_name>")
-            print()
-            return
 
         api_key_url = f'{self.server_url}/generate_api_key'
+        if args.api_name is None:
+            args.api_name = 'Secret Key'
 
         headers = {
             'Content-Type': 'application/json',
@@ -1461,6 +1495,8 @@ class BlockchainCmd(cmd2.Cmd):
             response = requests.post(api_key_url, headers=headers, data=payload)
             response.raise_for_status()
             api_key = response.json().get('api_key', '')
+
+
 
             if api_key:
                 print(f"Generated API Key for {args.api_name}: {api_key}")
@@ -1530,7 +1566,6 @@ class BlockchainCmd(cmd2.Cmd):
         print()
         return api_key
 
-    # Regular User Commands
     available_commands = [
         "BLOCKCHAIN COMMANDS",
         "deselect\t\t\tDeselect the currently selected blockchain.",
@@ -1546,10 +1581,12 @@ class BlockchainCmd(cmd2.Cmd):
         "SEARCH BLOCK COMMANDS",
         "search_data\t\t\tSearch for data in the selected blockchain using the specified criteria and value.",
         "display_search_results\t\tDisplay the results of the last search operation.",
+        "clear_search_results\t\tClear the results of the last search operation",
         "get_search_index\t\tGet detailed information about a specific result from the last search.",
         "",
-        "UPDATE COMMANDS",
+        "UPDATE BLOCK COMMANDS",
         "update_by_id\t\t\tUpdate a block in the selected blockchain by providing the block ID and new data.",
+        "update_by_id_hashed\t\tUpdate a block in the selected blockchain as hash by providing the block ID and new data.",
         "update_block\t\t\tUpdate a block in the selected blockchain by providing criteria, value, and new data.",
         "update_block_hashed\t\tUpdate a block in the selected blockchain by criteria as Hash.",
         "",
@@ -1578,6 +1615,7 @@ class BlockchainCmd(cmd2.Cmd):
         "Additionally, you can type \"<command> -h\" for more details on the command.",
         ""
     ]
+    # Regular User Commands
 
     # Admin User Commands
     available_admin_commands = [
