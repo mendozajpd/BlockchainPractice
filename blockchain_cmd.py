@@ -91,26 +91,31 @@ class BlockchainCmd(cmd2.Cmd):
     # Delete blockchain
     delete_parser = Cmd2ArgumentParser()
     delete_parser.add_argument('-bn', '--blockchain_name')
+    delete_parser.add_argument('-pass', '--blockchain_password')
 
     # Verify blockchain
     verify_parser = Cmd2ArgumentParser()
     verify_parser.add_argument('-bn', '--blockchain_name')
+    verify_parser.add_argument('-pass', '--blockchain_password')
 
     # Store
     store_parser = Cmd2ArgumentParser()
     store_parser.add_argument('-bn', '--blockchain_name')
+    store_parser.add_argument('-pass', '--blockchain_password')
     store_parser.add_argument('-d', '--data')
     store_parser.add_argument('-r', '--reference')
 
     # Store HASHED
     store_hashed_parser = Cmd2ArgumentParser()
     store_hashed_parser.add_argument('-bn', '--blockchain_name')
+    store_hashed_parser.add_argument('-pass', '--blockchain_password')
     store_hashed_parser.add_argument('-d', '--data')
     store_hashed_parser.add_argument('-r', '--reference')
 
     # Search
     search_parser = Cmd2ArgumentParser()
     search_parser.add_argument('-bn', '--blockchain_name')
+    search_parser.add_argument('-pass', '--blockchain_password')
     search_parser.add_argument('-c', '--criteria')
     search_parser.add_argument('-v', '--value')
 
@@ -124,6 +129,7 @@ class BlockchainCmd(cmd2.Cmd):
     # Update
     update_parser = Cmd2ArgumentParser()
     update_parser.add_argument('-bn', '--blockchain_name')
+    update_parser.add_argument('-pass', '--blockchain_password')
     update_parser.add_argument('-c', '--criteria')
     update_parser.add_argument('-v', '--value')
     update_parser.add_argument('-n', '--new_data')
@@ -131,17 +137,20 @@ class BlockchainCmd(cmd2.Cmd):
     # Update Block by ID
     update_block_by_id_parser = Cmd2ArgumentParser()
     update_block_by_id_parser.add_argument('-bn', '--blockchain_name')
+    update_block_by_id_parser.add_argument('-pass', '--blockchain_password')
     update_block_by_id_parser.add_argument('-id', '--block_id')
     update_block_by_id_parser.add_argument('-n', '--new_data')
 
     # Delete
     delete_reference_parser = Cmd2ArgumentParser()
     delete_reference_parser.add_argument('-bn', '--blockchain_name')
+    delete_reference_parser.add_argument('-pass', '--blockchain_password')
     delete_reference_parser.add_argument('-id', '--block_id')
 
     # Delete Reference by Criteria
     delete_reference_by_criteria_parser = Cmd2ArgumentParser()
     delete_reference_by_criteria_parser.add_argument('-bn', '--blockchain_name')
+    delete_reference_by_criteria_parser.add_argument('-pass', '--blockchain_password')
     delete_reference_by_criteria_parser.add_argument('-c', '--criteria')
     delete_reference_by_criteria_parser.add_argument('-v', '--value')
 
@@ -155,6 +164,7 @@ class BlockchainCmd(cmd2.Cmd):
     # List References
     list_references_parser = Cmd2ArgumentParser()
     list_references_parser.add_argument('-bn', '--blockchain_name')
+    list_references_parser.add_argument('-pass', '--blockchain_password')
 
     # Create User
     create_user_parser = Cmd2ArgumentParser()
@@ -254,7 +264,8 @@ class BlockchainCmd(cmd2.Cmd):
         url = f'{server_url}/select_blockchain'
 
         payload = json.dumps({
-            'blockchain_name': args.blockchain_name
+            'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
         })
 
         headers = {
@@ -354,7 +365,8 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
-            'apikey': self.api_key
+            'apikey': self.api_key,
+            'blockchain_password': args.blockchain_password
         })
 
         headers = {
@@ -394,6 +406,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'data': args.data,
             'reference': args.reference,
             'apikey': self.api_key
@@ -438,6 +451,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'data': args.data,
             'reference': args.reference,
             'apikey' : self.api_key
@@ -471,6 +485,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'criteria': args.criteria,
             'value': args.value,
             'apikey' : self.api_key
@@ -611,6 +626,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'apikey': self.api_key
         })
 
@@ -661,6 +677,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             "block_id": args.block_id,
             "new_data": args.new_data,
             'apikey': self.api_key
@@ -703,6 +720,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'criteria': args.criteria,
             'value': args.value,
             'new_data': args.new_data,
@@ -752,6 +770,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             "block_id": args.block_id,
             "new_data": args.new_data,
             'apikey': self.api_key
@@ -803,6 +822,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             "criteria": args.criteria,
             "value": args.value,
             "new_data": args.new_data,
@@ -846,6 +866,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'block_id': args.block_id,
             'apikey': self.api_key
         })
@@ -886,13 +907,14 @@ class BlockchainCmd(cmd2.Cmd):
         delete_reference_url = f'{self.server_url}/delete_reference_by_criteria'
 
         headers = {
-            'apikey': self.api_key,
             'Content-Type': 'application/json',
+            'apikey': self.api_key,
             'Cookie': self.session_cookie
         }
 
         payload = json.dumps({
             "blockchain_name": args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             "criteria": args.criteria,
             "value": args.value,
             'apikey': self.api_key,
@@ -935,12 +957,13 @@ class BlockchainCmd(cmd2.Cmd):
         })
 
         headers = {
+            'Content-Type': 'application/json',
             'apikey': api_key,
             'Cookie': self.session_cookie,
         }
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, data=payload)
             response.raise_for_status()
             blockchains = response.json().get('blockchains', [])
 
@@ -975,6 +998,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         payload = json.dumps({
             'blockchain_name': args.blockchain_name,
+            'blockchain_password': args.blockchain_password,
             'apikey': self.api_key,
         })
 
@@ -1039,9 +1063,44 @@ class BlockchainCmd(cmd2.Cmd):
                 if log_entries:
                     print("Log Entries:")
                     for index, entry in enumerate(log_entries, start=1):
-                        print(f"- Log {index}: {entry['data']}, UserID: {entry['reference']}")
+                        print(f"Log {index}: {entry['data']}, UserID: {entry['reference']}")
                 else:
                     print("No log entries found.")
+            elif response.status_code == 404:
+                print(return_error(response.text))
+                print()
+            else:
+                response.raise_for_status()
+
+            print()
+        except requests.RequestException as e:
+            print(return_error(response.text))
+            print()
+
+    def do_list_public_blockchains(self,args):
+        url = f'{self.server_url}/list_public_blockchains'
+
+        payload = json.dumps({
+            'apikey': self.api_key,
+        })
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Cookie': self.session_cookie,
+            'apikey': self.api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers, data=payload)
+            if response.status_code == 200:
+                public_blockchains = response.json().get('public_blockchains', [])
+
+                if public_blockchains:
+                    print("Public Blockchains:")
+                    for index, blockchain in enumerate(public_blockchains, start=1):
+                        print(f"-{blockchain}")
+                else:
+                    print("No public blockchains found.")
             elif response.status_code == 404:
                 print(return_error(response.text))
                 print()
@@ -1714,9 +1773,11 @@ class BlockchainCmd(cmd2.Cmd):
         "delete_block\t\t\tDelete a reference in the selected blockchain by providing the block ID.",
         "delete_blocks_by_criteria\tDelete references in the selected blockchain based on criteria.",
         "",
-        "LIST COMMANDS",
+        "LIST/DISPLAY COMMANDS",
         "list\t\t\t\tList all available blockchains.",
         "list_r\t\t\t\tList references for the selected blockchain.",
+        "list_public_blockchains\t\tLists all public blockchains",
+        "display_logs\t\t\tDisplays logs and history.",
         "",
         "API COMMANDS",
         "apikey_gen\t\t\tGenerate a new API key with a specified name.",

@@ -654,6 +654,10 @@ def log_route_call(user_id, route, api_key):
         logs_count = cursor.fetchone()[0]
         if logs_count == 0:
             create_genesis_block("logs","{api_name} : {route} : {timestamp} reference: user_id")
+            # Insert the blockchain metadata into the 'blockchains' table
+            cursor.execute(
+                'INSERT INTO blockchains (blockchain_name, is_public, user_id, created_at, last_updated) VALUES (?, ?, ?, ?, ?)',
+                (blockchain_name, 1, 0, formatted_timestamp, formatted_timestamp))
 
         # Generate a hash for the log entry
         timestamp = formatted_timestamp  # Renamed the variable to avoid collision
@@ -712,14 +716,14 @@ def create_blockchain():
     blockchain_password = data['blockchain_password']
     user_id = g.user_id
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" +str(user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
     apikey = data.get('apikey')
 
     if is_public is None:
         return jsonify({'error': 'The "is_public" field is required for blockchain creation'}), 400
 
-    if str(is_public) == "0" and blockchain_password is None:
-        return jsonify({'error': 'A Blockchain Password is required for private blockchains'}), 400
+    if blockchain_password is None or blockchain_password == "":
+        return jsonify({'error': 'The Blockchain Password cannot be empty'}), 400
 
     # Create the database if it doesn't exist
     init_db()
@@ -763,9 +767,10 @@ def delete_blockchain_endpoint():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
     api_key = data.get('apikey')
-
+    blockchain_password = data['blockchain_password']
     blockchain_orig_name = blockchain_name
-    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
+
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to delete a blockchain'}), 401
@@ -792,6 +797,7 @@ def delete_blockchain_endpoint():
 def store_in_blockchain_hashed():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     data_to_store = data['data']
     reference = data['reference']
     api_key = data.get('apikey')
@@ -806,7 +812,8 @@ def store_in_blockchain_hashed():
         return jsonify({'error': 'No Blockchain selected/provided'}), 400
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
+
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -849,6 +856,7 @@ def store_in_blockchain_hashed():
 def store_in_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     data_to_store = data['data']
     reference = data['reference']
     api_key = data.get('apikey')
@@ -863,10 +871,8 @@ def store_in_blockchain():
         return jsonify({'error': 'No Blockchain selected/provided'}), 400
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to store data in blockchain'}), 401
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
@@ -906,24 +912,23 @@ def store_in_blockchain():
 def delete_reference_by_id():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     block_id = data['block_id']
     api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to delete data in a blockchain'}), 401
 
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
-
-    #API CHECK
+    # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not block_id:
         return jsonify({'error': 'Blockchain name and block ID are required'}), 400
@@ -968,27 +973,24 @@ def delete_reference_by_id():
 def delete_reference_by_criteria():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     criteria = data['criteria']
     value = data['value']
     api_key = data.get('apikey')
 
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to delete data in a blockchain'}), 401
-
-
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not criteria or not value:
         return jsonify({'error': 'Blockchain name, criteria, and value are required'}), 400
@@ -1033,26 +1035,24 @@ def delete_reference_by_criteria():
 def update_block_by_id():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     block_id = data['block_id']
     new_data = data['new_data']
     api_key = data.get('apikey')
 
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
-
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
@@ -1109,26 +1109,24 @@ def update_block_by_id():
 def update_block_by_criteria():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     criteria = data['criteria']
     value = data['value']
     new_data = data['new_data']
     api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
-
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not criteria or not value or not new_data:
         return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
@@ -1189,28 +1187,24 @@ def update_block_by_criteria():
 def update_block_by_id_as_hash():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     block_id = data['block_id']
     new_data = data['new_data']
     api_key = data.get('apikey')
 
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
-
-
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
-
-    #API CHECK
+    # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
 
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not block_id or not new_data:
         return jsonify({'error': 'Blockchain name, block ID, and new data are required'}), 400
@@ -1268,6 +1262,7 @@ def update_block_by_id_as_hash():
 def update_block_by_criteria_as_hash():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     criteria = data['criteria']
     value = data['value']
     new_data = data['new_data']
@@ -1275,20 +1270,17 @@ def update_block_by_criteria_as_hash():
 
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to update data in a blockchain'}), 401
-
-    # Check if the user owns the specified blockchain
-    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-        return jsonify({'error': 'User does not own the specified blockchain'}), 403
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    # Check if the user owns the specified blockchain
+    if not user_owns_blockchain(g.user_id, blockchain_orig_name):
+        return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
     if not blockchain_name or not criteria or not value or not new_data:
         return jsonify({'error': 'Blockchain name, criteria, value, and new data are required'}), 400
@@ -1349,16 +1341,19 @@ def update_block_by_criteria_as_hash():
 def search_blockchain_endpoint():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     criteria = data['criteria']
     value = data['value']
     api_key = data.get('apikey')
-
 
     # API CHECK
     validation_result = validate_api_key()
 
     if validation_result:
         return validation_result
+
+    if not blockchain_password:
+        return jsonify({'error': 'Blockchain password is required.'}), 401
 
     if blockchain_name == "":
         return jsonify({'error': 'No Blockchain selected/provided'}), 400
@@ -1368,11 +1363,7 @@ def search_blockchain_endpoint():
 
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
-
-    if not g.logged_in:
-        return jsonify({'error': 'User must log in to search data in a blockchain'}), 401
-
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
 
     # Check if the user owns the specified blockchain
@@ -1499,10 +1490,14 @@ def list_blockchains():
 def list_references():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
+
+    if not blockchain_password:
+        return jsonify({'error': 'Blockchain password is required.'}), 401
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to get the references in a blockchain'}), 401
@@ -1538,6 +1533,41 @@ def list_references():
             return jsonify({'message': f'No references found for {blockchain_orig_name}'}), 404
     except Exception as e:
         return jsonify({'error': f'Failed to list references: {str(e)}'}), 500
+    finally:
+        conn.close()
+
+# List Public Blockchains
+@app.route('/list_public_blockchains', methods=['GET'])
+def list_public_blockchains():
+    data = request.get_json()
+    api_key = data.get('apikey')
+
+    if not g.logged_in:
+        return jsonify({'error': 'User must log in to list public blockchains'}), 401
+
+    # API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
+    conn, cursor = open_database(DATABASE)
+
+    try:
+        cursor.execute('''
+            SELECT blockchain_name
+            FROM blockchains
+            WHERE is_public = 1
+        ''')
+        public_blockchains = [row[0] for row in cursor.fetchall()]
+
+        if public_blockchains:
+            log_route_call(g.user_id, '/list_public_blockchains', api_key)
+            return jsonify({'public_blockchains': public_blockchains}), 200
+        else:
+            return jsonify({'message': 'No public blockchains found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Failed to list public blockchains: {str(e)}'}), 500
     finally:
         conn.close()
 
@@ -1580,11 +1610,11 @@ def display_logs():
 def verify_blockchain():
     data = request.get_json()
     blockchain_name = data['blockchain_name']
+    blockchain_password = data['blockchain_password']
     api_key = data.get('apikey')
 
     blockchain_orig_name = blockchain_name
-    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
-
+    blockchain_name = str(blockchain_name) + "_" + hash_data(str(blockchain_password))
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to verify a blockchain'}), 401
@@ -1601,10 +1631,6 @@ def verify_blockchain():
 
 
     else:
-        # Check if the user owns the specified blockchain
-        if not user_owns_blockchain(g.user_id, blockchain_orig_name):
-            return jsonify({'error': 'User does not own the specified blockchain'}), 403
-
         #API CHECK
         validation_result = validate_api_key()
 
