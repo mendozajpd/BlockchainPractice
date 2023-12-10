@@ -1530,34 +1530,63 @@ class BlockchainCmd(cmd2.Cmd):
         print()
         return api_key
 
+    # Regular User Commands
     available_commands = [
-        "create \t\t\tCreate a new blockchain with the specified name, type, and password.",
-        "delete_blockchain \t\tDelete an existing blockchain by providing its name.",
-        "store \t\t\tStore data in the blockchain with the specified name, data, and reference.",
-        "store_hash \t\t\tStore hashed data in the blockchain with the specified name, data, and reference.",
-        "search_data \t\t\tSearch for data in the blockchain using the specified criteria and value.",
-        "verify_blockchain \t\tVerify the integrity of a blockchain by providing its name.",
-        "update_block \t\t\tUpdate a block in the blockchain with the specified criteria, value, and new data.",
-        "update_by_id \t\t\tUpdate a block in the blockchain by ID",
-        "update_block_hashed \t\tUpdate a block in the blockchain by criteria as Hash.",
-        "update_by_id_hashed \t\tUpdate a block in the blockchain by ID as Hash.",
-        "delete_block \t\t\tDelete a reference in the blockchain by providing the blockchain name and block ID.",
-        "delete_block_by_criteria \tDelete a reference in the blockchain by criteria.",
-        "list \t\t\t\tList all blockchains.",
-        "list_r \t\t\tList references for a specific blockchain by providing its name.",
-        "change_add \t\t\tChange the address of the API by providing a new address.",
-        "change_key \t\t\tChange the key of the API by providing a new key.",
-        "show_add \t\t\tShow the current address of the API.",
-        "show_key \t\t\tShow the current key of the API.",
-        "quit \t\t\t\tExit the application.",
-        "apikey_gen \t\t\tGenerate a new API key with a specified name.",
-        "create_user \t\t\tCreate a new user with the specified username, password, and admin status.",
-        "register \t\t\tRegister a new user with the specified username and password.",
-        "login \t\t\tLog in with the provided username and password.",
-        "logout \t\t\tLog out the user with the provided username and password.",
-        "show_session \t\t\tShow the current session.",
+        "BLOCKCHAIN COMMANDS",
+        "deselect\t\t\tDeselect the currently selected blockchain.",
+        "select\t\t\t\tSelect a specific blockchain for operations.",
+        "create\t\t\t\tCreate a new blockchain with the specified name, type, and password.",
+        "delete_blockchain\t\tDelete an existing blockchain by providing its name.",
+        "verify_blockchain\t\tVerify the integrity of the selected blockchain.",
+        "",
+        "STORING DATA TO BLOCKCHAIN",
+        "store\t\t\t\tStore data in the selected blockchain with the specified data and reference.",
+        "store_hash\t\t\tStore hashed data in the selected blockchain with the specified data and reference.",
+        "",
+        "SEARCH BLOCK COMMANDS",
+        "search_data\t\t\tSearch for data in the selected blockchain using the specified criteria and value.",
+        "display_search_results\t\tDisplay the results of the last search operation.",
+        "get_search_index\t\tGet detailed information about a specific result from the last search.",
+        "",
+        "UPDATE COMMANDS",
+        "update_by_id\t\t\tUpdate a block in the selected blockchain by providing the block ID and new data.",
+        "update_block\t\t\tUpdate a block in the selected blockchain by providing criteria, value, and new data.",
+        "update_block_hashed\t\tUpdate a block in the selected blockchain by criteria as Hash.",
+        "",
+        "DELETE COMMANDS",
+        "delete_block\t\t\tDelete a reference in the selected blockchain by providing the block ID.",
+        "delete_blocks_by_criteria\tDelete references in the selected blockchain based on criteria.",
+        "",
+        "LIST COMMANDS",
+        "list\t\t\t\tList all available blockchains.",
+        "list_r\t\t\t\tList references for the selected blockchain.",
+        "",
+        "API COMMANDS",
+        "apikey_gen\t\t\tGenerate a new API key with a specified name.",
+        "set_key\t\t\t\tSet the API key for the current session.",
+        "show_key\t\t\tShow the current API key.",
+        "revoke_key\t\t\tRevoke the current API key.",
+        "",
+        "ACCOUNT COMMANDS",
+        "register\t\t\tRegister a new user with the specified username and password.",
+        "login\t\t\t\tLog in with the provided username and password.",
+        "logout\t\t\t\tLog out the current user.",
+        "change_username\t\t\tChange the username for the current user.",
+        "change_password\t\t\tChange the password for the current user.",
+        "delete_account\t\t\tDelete the account of the current user.",
         "",
         "Additionally, you can type \"<command> -h\" for more details on the command.",
+        ""
+    ]
+
+    # Admin User Commands
+    available_admin_commands = [
+        "create_user\t\t\tCreate a new user with the specified username, password, and admin status.",
+        "admin_delete_account\t\tDelete the account of a specific user.",
+        "admin_change_username\t\tChange the username of a specific user.",
+        "admin_change_password\t\tChange the password of a specific user.",
+        "admin_list_blockchains_of_user\tList the blockchains owned by a specific user.",
+        "admin_list_users\t\tList all registered users.",
         ""
     ]
 
@@ -1574,14 +1603,27 @@ class BlockchainCmd(cmd2.Cmd):
             for cmd in self.available_commands:
                 print(f"{cmd}")
 
+    def do_admin_help(self,arg):
+        print()
+        """
+        Display information about available admin commands.
+        Usage: help [command]
+        """
+
+        if arg:
+            super().do_admin_help(arg)
+        else:
+            print("\nAvailable ADMIN Commands:")
+            for cmd in self.available_admin_commands:
+                print(f"{cmd}")
 
 
 if __name__ == '__main__':
-    api_key = 'bac9a0eb-f23d-4911-b69b-ddb352bb55aa'
+    api_key = ''
     api_address = "https://127.0.0.1:5000"
     print("- Blockchain Security System v1.0 -")
     print("Address: ", api_address)
-    print("Key: ", api_key)
+    # print("Key: ", api_key)
     print()
     print("Type \"help\" for commands")
 

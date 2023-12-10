@@ -31,13 +31,11 @@ def get_db():
         db = g._database = sqlite3.connect(DATABASE)
     return db
 
-
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
-
 
 # SQLite schema
 def init_db():
@@ -142,13 +140,11 @@ def create_admin_user():
 def hash_data(data):
     return hashlib.sha256(data.encode()).hexdigest()
 
-
 # Open database connection
 def open_database(database_name):
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
     return conn, cursor
-
 
 def verify_blockchain_integrity(blockchain_name):
     conn, cursor = open_database(DATABASE)
@@ -201,7 +197,6 @@ def create_genesis_block(blockchain_name):
     finally:
         conn.close()
 
-
 # Add Block to Blockchain
 def add_block(blockchain_name, hash_value, data, reference):
     conn, cursor = open_database(DATABASE)
@@ -220,7 +215,6 @@ def add_block(blockchain_name, hash_value, data, reference):
         return False
     finally:
         conn.close()
-
 
 # Get Latest Hash from Blockchain
 def get_latest_hash_by_max_id(blockchain_name):
@@ -243,7 +237,6 @@ def get_latest_hash_by_max_id(blockchain_name):
         return f'Error: {str(e)}'
     finally:
         conn.close()
-
 
 # Delete Blockchain
 def delete_blockchain(blockchain_name, blockchain_orig_name):
@@ -1468,6 +1461,12 @@ def register_user():
     data = request.get_json()
     username = data['username']
     password = data['password']
+
+    if username is None:
+        return jsonify({'error': 'Username cannot be empty'}), 400
+
+    if password is None:
+        return jsonify({'error': 'Password cannot be empty'}), 400
 
     # Check if the username is already taken
     if is_username_taken(username):
