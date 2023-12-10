@@ -250,6 +250,7 @@ class BlockchainCmd(cmd2.Cmd):
         api_key = self.api_key
         server_url = self.server_url
 
+
         url = f'{server_url}/select_blockchain'
 
         payload = json.dumps({
@@ -273,18 +274,23 @@ class BlockchainCmd(cmd2.Cmd):
             print()
         except requests.RequestException as e:
             print(return_error(response.text))
+            if args.blockchain_name is None:
+                print("Usage: select -bn <blockchain_name>")
             print()
 
     @cmd2.with_argparser(deselect_parser)
     def do_deselect(self, args):
-        if self.selected_blockchain == "":
-            print("No blockchains currently selected.")
-            print()
+        if self.username == "" :
+            print("User must log in to deselect a blockchain")
         else:
-            print(f'Blockchain {self.selected_blockchain} has been deselected.')
-            print()
-            self.deselect()
-            self.update_prompt()
+            if self.selected_blockchain == "":
+                print("No blockchains currently selected.")
+                print()
+            else:
+                print(f'Blockchain {self.selected_blockchain} has been deselected.')
+                print()
+                self.deselect()
+                self.update_prompt()
 
     @cmd2.with_argparser(create_parser)
     def do_create(self, args):
@@ -295,8 +301,8 @@ class BlockchainCmd(cmd2.Cmd):
         create <blockchain_name> <blockchain_type> <blockchain_password>
         """
         if not args.blockchain_name:
-            print("Error: Blockchain name cannot be empty.")
-            print("Usage: create -bn <blockchain_name> -type <blockchain_type> -pass <blockchain_password>")
+            print("Blockchain name cannot be empty.")
+            print("Usage: create -bn <blockchain_name> -pub <is_public> -pass <blockchain_password>")
             print()
             return
 
@@ -339,6 +345,12 @@ class BlockchainCmd(cmd2.Cmd):
 
         url = f'{server_url}/delete_blockchain'
 
+        if not args.blockchain_name and self.username:
+            print("Blockchain name cannot be empty.")
+            print("Usage: create -bn <blockchain_name> -pub <is_public> -pass <blockchain_password>")
+            print()
+            return
+
         payload = json.dumps({
             'blockchain_name': args.blockchain_name
         })
@@ -371,6 +383,10 @@ class BlockchainCmd(cmd2.Cmd):
 
         url = f'{server_url}/store_in_blockchain'
 
+        if not self.username:
+            print("User must log in to store data")
+            return
+
         if args.blockchain_name is None:
             args.blockchain_name = self.selected_blockchain
 
@@ -394,6 +410,7 @@ class BlockchainCmd(cmd2.Cmd):
 
         except requests.RequestException as e:
             print(return_error(response.text))
+
             print()
 
     @cmd2.with_argparser(store_hashed_parser)
@@ -408,6 +425,10 @@ class BlockchainCmd(cmd2.Cmd):
         server_url = self.server_url
 
         url = f'{server_url}/store_in_blockchain_hashed'
+
+        if not self.username:
+            print("User must log in to store data")
+            return
 
         if args.blockchain_name is None:
             args.blockchain_name = self.selected_blockchain
@@ -1083,6 +1104,12 @@ class BlockchainCmd(cmd2.Cmd):
         Usage:
         register -u <username> -p <password>
         """
+        if not args.username or not args.password:
+            print("Username and password are required.")
+            print("Usage: register -u <username> -p <password>")
+            print()
+            return
+
         url = f'{self.server_url}/register'
 
         payload = json.dumps({
@@ -1114,7 +1141,7 @@ class BlockchainCmd(cmd2.Cmd):
         """
 
         if not args.username or not args.password:
-            print("Error: Username and password are required.")
+            print("Username and password are required.")
             print("Usage: login -u <username> -p <password>")
             print()
             return

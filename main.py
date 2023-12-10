@@ -631,6 +631,11 @@ def create_blockchain():
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" +str(user_id)
 
+    if is_public is None:
+        return jsonify({'error': 'The "is_public" field is required for blockchain creation'}), 400
+
+    if str(is_public) == "0" and blockchain_password is None:
+        return jsonify({'error': 'A Blockchain Password is required for private blockchains'}), 400
 
     # Create the database if it doesn't exist
     init_db()
@@ -698,8 +703,17 @@ def store_in_blockchain_hashed():
     data_to_store = data['data']
     reference = data['reference']
 
+    #API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
+    if blockchain_name == "":
+        return jsonify({'error': 'No Blockchain selected/provided'}), 400
+
     blockchain_orig_name = blockchain_name
-    blockchain_name = blockchain_name + "_" + str(g.user_id)
+    blockchain_name = str(blockchain_name) + "_" + str(g.user_id)
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to store data in blockchain'}), 401
@@ -708,12 +722,8 @@ def store_in_blockchain_hashed():
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
         return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
-    #API CHECK
-    validation_result = validate_api_key()
-
-    if validation_result:
-        return validation_result
-
+    if data_to_store is None:
+        return jsonify({'error': 'Data field is required'}), 400
 
     if not reference:
         return jsonify({'error': 'Reference field is required'}), 400
@@ -751,6 +761,12 @@ def store_in_blockchain():
     data_to_store = data['data']
     reference = data['reference']
 
+    #API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
     if blockchain_name == "":
         return jsonify({'error': 'No Blockchain selected/provided'}), 400
 
@@ -764,12 +780,8 @@ def store_in_blockchain():
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
         return jsonify({'error': 'User does not own the specified blockchain'}), 403
 
-    #API CHECK
-    validation_result = validate_api_key()
-
-    if validation_result:
-        return validation_result
-
+    if data_to_store is None:
+        return jsonify({'error': 'Data field is required'}), 400
 
     if not reference:
         return jsonify({'error': 'Reference field is required'}), 400
@@ -1225,6 +1237,18 @@ def search_blockchain_endpoint():
     criteria = data['criteria']
     value = data['value']
 
+    # API CHECK
+    validation_result = validate_api_key()
+
+    if validation_result:
+        return validation_result
+
+    if blockchain_name == "":
+        return jsonify({'error': 'No Blockchain selected/provided'}), 400
+
+    if criteria is None:
+        return jsonify({'error': f"Criteria field cannot be empty"}), 400
+
 
     blockchain_orig_name = blockchain_name
     blockchain_name = blockchain_name + "_" + str(g.user_id)
@@ -1232,11 +1256,7 @@ def search_blockchain_endpoint():
     if not g.logged_in:
         return jsonify({'error': 'User must log in to search data in a blockchain'}), 401
 
-    # API CHECK
-    validation_result = validate_api_key()
 
-    if validation_result:
-        return validation_result
 
     # Check if the user owns the specified blockchain
     if not user_owns_blockchain(g.user_id, blockchain_orig_name):
