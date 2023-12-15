@@ -70,7 +70,7 @@ class BlockchainCmd(cmd2.Cmd):
         self.user_type = ""
         self.selected_blockchain = ""  # Set selected blockchain dynamically
         self.prompt = f"BSS:{self.user_type}:{self.username}:{self.selected_blockchain}>"
-        # add keyname
+
 
     def update_prompt(self):
         self.prompt = f"BSS:{self.user_type}:{self.username}:{self.selected_blockchain}>"
@@ -78,6 +78,7 @@ class BlockchainCmd(cmd2.Cmd):
     # Select blockchain
     select_parser = Cmd2ArgumentParser()
     select_parser.add_argument('-bn', '--blockchain_name')
+    select_parser.add_argument('-pass', '--blockchain_password')
 
     # Deselect blockchain
     deselect_parser = Cmd2ArgumentParser()
@@ -1448,6 +1449,7 @@ class BlockchainCmd(cmd2.Cmd):
             'apikey': self.api_key,
         }
         headers = {
+            'Content-Type': 'application/json',
             'Cookie' : self.session_cookie
         }
 
@@ -1697,6 +1699,7 @@ class BlockchainCmd(cmd2.Cmd):
         })
 
         headers = {
+            'Content-Type': 'application/json',
             'Cookie': self.session_cookie
         }
 
@@ -1781,9 +1784,10 @@ class BlockchainCmd(cmd2.Cmd):
         "",
         "API COMMANDS",
         "apikey_gen\t\t\tGenerate a new API key with a specified name.",
-        "set_key\t\t\t\tSet the API key for the current session.",
+        "set_key\t\t\t\tSet the API key for Fthe current session.",
         "show_key\t\t\tShow the current API key.",
         "revoke_key\t\t\tRevoke the current API key.",
+        "display_keys\t\t\tDisplays API Keys",
         "",
         "ACCOUNT COMMANDS",
         "register\t\t\tRegister a new user with the specified username and password.",

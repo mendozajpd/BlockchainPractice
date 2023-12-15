@@ -682,6 +682,9 @@ def log_route_call(user_id, route, api_key):
 def select_blockchain():
     data = request.get_json()
     blockchain_name = data.get('blockchain_name')
+    blockchain_password = data.get('blockchain_password')
+
+
 
     if not g.logged_in:
         return jsonify({'error': 'User must log in to select a blockchain'}), 401
@@ -1532,7 +1535,7 @@ def list_references():
         else:
             return jsonify({'message': f'No references found for {blockchain_orig_name}'}), 404
     except Exception as e:
-        return jsonify({'error': f'Failed to list references: {str(e)}'}), 500
+        return jsonify({'error': f'Failed to list references'}), 500
     finally:
         conn.close()
 
@@ -2126,7 +2129,7 @@ def revoke_api_key():
     if not api_name_to_revoke:
         return jsonify({'error': 'API name is required'}), 400
 
-    log_route_call(g.user_id,'/revoke_api_key',apikey)
+    log_route_call(g.user_id,'/revoke_api_key',api_key)
 
     # Revoke the API key for the specified API name
     conn, cursor = open_database(DATABASE)
